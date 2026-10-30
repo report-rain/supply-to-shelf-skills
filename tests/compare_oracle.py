@@ -151,6 +151,50 @@ def write_video_specs(work):
 
 SELECTION = "Agents/01_Selection_Agent"
 CREATIVE = "Agents/05_Creative_Agent"
+LISTING = "Agents/04_Listing_Agent"
+REVIEW = "Agents/07_Review_Ops_Agent"
+
+LISTING_BASE = {
+    "brand": "NordPulse",
+    "title": "NordPulse Insulated Tumbler 16 oz Stainless Steel Cup for Coffee and Tea",
+    "item_name": "NordPulse Insulated Tumbler 16 oz",
+    "item_highlights": "Stainless Steel Cup for Coffee and Tea",
+    "short_description": "A compact tumbler for daily coffee.",
+    "description": "A compact tumbler for daily coffee. Keeps drinks warm on short commutes.",
+    "bullets": [
+        "Double-wall steel body keeps drinks warm for about 2 hours.",
+        "Snap-on lid seals tight so the bag stays dry.",
+        "Fits most car cup holders and backpack side pockets.",
+        "Dishwasher-safe top rack; hand wash the body.",
+        "Ships with a straw and a cleaning brush.",
+    ],
+    "backend_search_terms": "insulated tumbler steel cup coffee tea travel",
+    "aplus_modules": [
+        "Hero: NordPulse tumbler",
+        "Why you will like it: keeps temperature",
+        "How to use: fill and seal",
+        "Details: 16 oz stainless steel",
+        "In the box: tumbler, straw, brush",
+    ],
+    "product_attributes": {"ip_rating": "none"},
+}
+
+
+def listing_json(**changes):
+    data = dict(LISTING_BASE)
+    data.update(changes)
+    return json.dumps(data, ensure_ascii=False)
+
+
+ALL_TERMS = (
+    "FDA approved formula. It cures and treats and prevents illness. Clinically proven. "
+    "Doctor recommended. Medical grade. 100% safe. Best pick. #1 rank. Non-toxic. "
+    "Eco-friendly. Biodegradable. Antibacterial. Waterproof. Instantly. Permanent. "
+    "Guaranteed. Premium. Professional. Advanced. Innovative."
+)
+
+REVIEWS_HEADER = "rating,title,body\n"
+RETURNS_HEADER = "reason_code,qty,refund_amount\n"
 
 CASES = [
     {
@@ -428,6 +472,233 @@ CASES = [
         "make_image": True,
         "make_video": True,
     },
+    {
+        "id": "04 claim 样例",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--file", "copy.txt", "--json"],
+        "files": {"copy.txt": LISTING + "/examples/copy.txt"},
+    },
+    {
+        "id": "04 claim 22 条规则全命中",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--text", ALL_TERMS, "--json"],
+    },
+    {
+        "id": "04 claim 否定语境",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--text", "This cup is not waterproof.", "--json"],
+    },
+    {
+        "id": "04 claim IP 已声明",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--text", "This bottle is waterproof.", "--ip-rating", "IPX4", "--json"],
+    },
+    {
+        "id": "04 claim 缺文件",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--file", "no-such.txt", "--json"],
+    },
+    {
+        "id": "04 claim 非 UTF-8",
+        "script": LISTING + "/scripts/claim_scan.py",
+        "args": ["--file", "gbk.txt", "--json"],
+        "make_bytes": {"gbk.txt": "中文文本".encode("gbk")},
+        "intended": ["#6"],
+    },
+    {
+        "id": "04 lint Amazon 样例",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "listing_input.json", "--platform", "amazon_us", "--json"],
+        "files": {"listing_input.json": LISTING + "/examples/listing_input.json"},
+    },
+    {
+        "id": "04 lint Amazon 文本",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "listing_input.json", "--platform", "amazon_us"],
+        "files": {"listing_input.json": LISTING + "/examples/listing_input.json"},
+    },
+    {
+        "id": "04 lint TikTok 样例",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "listing_input.json", "--platform", "tiktok_us", "--json"],
+        "files": {"listing_input.json": LISTING + "/examples/listing_input.json"},
+    },
+    {
+        "id": "04 lint 标题 80",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "t80.json", "--platform", "amazon_us", "--json"],
+        "make": {"t80.json": listing_json(
+            title=("NordPulse cup " + "x" * 100)[:80], item_name="", item_highlights="")},
+    },
+    {
+        "id": "04 lint 标题 201",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "t201.json", "--platform", "amazon_us", "--json"],
+        "make": {"t201.json": listing_json(
+            title=("NordPulse tumbler " + "cup " * 60)[:201], item_name="", item_highlights="")},
+    },
+    {
+        "id": "04 lint Item Highlights 126",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "h126.json", "--platform", "amazon_us", "--json"],
+        "make": {"h126.json": listing_json(
+            item_highlights=("Stainless Steel Cup with Lid and Straw " + "x" * 120)[:126])},
+    },
+    {
+        "id": "04 lint 后台词 251",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "b251.json", "--platform", "amazon_us", "--json"],
+        "make": {"b251.json": listing_json(backend_search_terms=("word " * 60)[:251])},
+    },
+    {
+        "id": "04 lint A+ 乱序",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "aplus_rev.json", "--platform", "amazon_us", "--json"],
+        "make": {"aplus_rev.json": listing_json(
+            aplus_modules=list(reversed(LISTING_BASE["aplus_modules"])))},
+        "intended": ["#7"],
+    },
+    {
+        "id": "04 lint A+ 缺主视觉",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "aplus_nohero.json", "--platform", "amazon_us", "--json"],
+        "make": {"aplus_nohero.json": listing_json(
+            aplus_modules=LISTING_BASE["aplus_modules"][1:])},
+        "intended": ["#7"],
+    },
+    {
+        "id": "04 lint IP 冲突",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "ipconf.json", "--platform", "amazon_us", "--json"],
+        "make": {"ipconf.json": listing_json(
+            title="NordPulse Waterproof Insulated Tumbler 16 oz Stainless Steel Cup for Coffee")},
+    },
+    {
+        "id": "04 lint 非 UTF-8",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "gbk.json", "--platform", "amazon_us", "--json"],
+        "make_bytes": {"gbk.json": listing_json().encode("utf-8") + b"\xff\xfe"},
+        "intended": ["#6"],
+    },
+    {
+        "id": "04 lint 缺字段",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "partial.json", "--platform", "amazon_us", "--json"],
+        "make": {"partial.json": json.dumps({"brand": "B", "title": "T"})},
+    },
+    {
+        "id": "04 lint 缺文件",
+        "script": LISTING + "/scripts/listing_lint.py",
+        "args": ["--file", "no-such.json", "--platform", "amazon_us", "--json"],
+    },
+    {
+        "id": "07 reviews 样例 JSON",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "sample-reviews.csv", "--json"],
+        "files": {"sample-reviews.csv": REVIEW + "/examples/sample-reviews.csv"},
+    },
+    {
+        "id": "07 reviews 样例文本",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "sample-reviews.csv"],
+        "files": {"sample-reviews.csv": REVIEW + "/examples/sample-reviews.csv"},
+    },
+    {
+        "id": "07 reviews 2.5 星",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "half.csv", "--json"],
+        "make": {"half.csv": REVIEWS_HEADER + "2.5,Broke fast,The seal failed after a week.\n"},
+    },
+    {
+        "id": "07 reviews 空正文",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "empty.csv", "--json"],
+        "make": {"empty.csv": REVIEWS_HEADER + "5,Great,Love it\n4,Good,\n"},
+    },
+    {
+        "id": "07 reviews 缺列",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "nocol.csv", "--json"],
+        "make": {"nocol.csv": "stars,title\n5,Great\n"},
+    },
+    {
+        "id": "07 reviews 缺文件",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["reviews", "--file", "no-such.csv", "--json"],
+    },
+    {
+        "id": "07 returns 样例 JSON",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "sample-returns.csv", "--orders", "320", "--json"],
+        "files": {"sample-returns.csv": REVIEW + "/examples/sample-returns.csv"},
+    },
+    {
+        "id": "07 returns 样例文本",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "sample-returns.csv", "--orders", "320"],
+        "files": {"sample-returns.csv": REVIEW + "/examples/sample-returns.csv"},
+    },
+    {
+        "id": "07 returns 缺 --orders",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "sample-returns.csv", "--json"],
+        "files": {"sample-returns.csv": REVIEW + "/examples/sample-returns.csv"},
+    },
+    {
+        "id": "07 returns --orders 0",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "sample-returns.csv", "--orders", "0", "--json"],
+        "files": {"sample-returns.csv": REVIEW + "/examples/sample-returns.csv"},
+    },
+    {
+        "id": "07 returns 未映射码",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "other.csv", "--orders", "10", "--json"],
+        "make": {"other.csv": RETURNS_HEADER + "DAMAGED,2,20.00\nCUSTOM_REASON,1,9.00\n"},
+    },
+    {
+        "id": "07 returns 缺列",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["returns", "--file", "nocol.csv", "--orders", "10", "--json"],
+        "make": {"nocol.csv": "reason_code,qty\nDAMAGED,1\n"},
+    },
+    {
+        "id": "07 health 样例 JSON",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "sample-health.json", "--json"],
+        "files": {"sample-health.json": REVIEW + "/examples/sample-health.json"},
+    },
+    {
+        "id": "07 health 样例文本",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "sample-health.json"],
+        "files": {"sample-health.json": REVIEW + "/examples/sample-health.json"},
+    },
+    {
+        "id": "07 health --fail-on-critical",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "sample-health.json", "--fail-on-critical", "--json"],
+        "files": {"sample-health.json": REVIEW + "/examples/sample-health.json"},
+        "intended": ["#9"],
+    },
+    {
+        "id": "07 health 缺字段",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "missing.json", "--json"],
+        "make": {"missing.json": json.dumps({"odr_pct": 0.5})},
+    },
+    {
+        "id": "07 health 顶层数组",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "array.json", "--json"],
+        "make": {"array.json": json.dumps([])},
+    },
+    {
+        "id": "07 health 非 JSON",
+        "script": REVIEW + "/scripts/review_ops.py",
+        "args": ["health", "--file", "broken.json", "--json"],
+        "make": {"broken.json": "{bad json"},
+    },
 ]
 
 
@@ -471,7 +742,7 @@ def main():
     parser = argparse.ArgumentParser(description="新旧实现黑盒对拍")
     parser.add_argument("--old-repo", required=True, help="旧仓库根目录")
     parser.add_argument("--new-repo", default=NEW_REPO, help="新仓库根目录（默认按本文件位置推断）")
-    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 05）")
+    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 04 / 05 / 07）")
     parser.add_argument("--keep", action="store_true", help="保留下拍临时目录")
     args = parser.parse_args()
 

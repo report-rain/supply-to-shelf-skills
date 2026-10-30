@@ -1,0 +1,8 @@
+{
+  "odr_pct": 1.35,
+  "late_shipment_pct": 3.6,
+  "pre_fulfillment_cancel_pct": 1.9,
+  "negative_feedback_pct": 0.55,
+  "a_to_z_claims": 5,
+  "policy_violations": 0
+}

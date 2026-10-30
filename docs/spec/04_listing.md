@@ -30,7 +30,7 @@
 
 1. 同时给 `--file` 与 `--text` → 固定报错 `--file 与 --text 只能二选一`，exit 2，不读文件。
 2. 两者都不给 → 报错 `缺少 --file 或 --text`，exit 2。
-3. 只有 `--text`（含空串 `""`）时按文本模式处理；`--text ""` 合法，输出 PASS。
+3. 只有 `--text` 时按文本模式处理；`--text ""` 视为缺失（与旧侧一致）→ exit 2、`缺失 --file 或 --text`。
 4. 无位置参数；未知选项/缺值由 argparse 处理，exit 2（非 JSON 契约）。
 
 ### 2.2 `listing_lint.py`
@@ -74,7 +74,7 @@
 | `eco-friendly` | MEDIUM | 泛化的环保声明无法核实，FTC 要求具体、可量化的环境收益。 | 改为具体事实，例如 “made with 30% post-consumer recycled plastic”（需供应链证明）。 |
 | `biodegradable` | HIGH | 可降解声明需要标准与认证，且需说明处置条件。 | 仅在有认证时写 “certified compostable to ASTM D6400”；否则删除。 |
 | `antibacterial` | HIGH | 抗菌属 EPA 监管的农药类声明，无 EPA 注册不得用于美区销售文案。 | 删除；改为物理清洁表述，例如 “wipes away everyday grime”。 |
-| `waterproof` | HIGH | 防水是性能安全声明；无 IP 等级与测试报告不得使用。 | 无等级时删除；有报告时改为 “IPX4 splash-resistant (tested to IEC 60529)”。 |
+| `waterproof` | HIGH | 防水是性能安全声明；未声明 IP 等级与测试报告，不得使用。 | 无等级时删除；有报告时改为 “IPX4 splash-resistant (tested to IEC 60529)”。 |
 | `instantly` | MEDIUM | “瞬间”缺少可测时间，属无法核实的速度声明。 | 改为可测时间，例如 “in about 30 seconds” 并注明测试条件。 |
 | `permanent` | HIGH | 永久性效果无法保证，属绝对化承诺。 | 改为可验证寿命，例如 “lasts up to 50 washes”（需测试依据）。 |
 | `guaranteed` | HIGH | 结果保证属高风险承诺；只能承诺具体售后政策。 | 改为政策表述，例如 “30-day return under store policy”；不要保证使用结果。 |
@@ -176,12 +176,12 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | JSON 语法错误 | 2 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] JSON 解析失败: …"}`（无 missing） |
 | 顶层非对象 | 2 | `{"status":"INPUT_MISSING","missing":["object"],"message":"[INPUT_MISSING] 顶层必须是 JSON 对象"}` |
 | 缺必填字段 | 2 | `{"status":"INPUT_MISSING","missing":[…],"message":"[INPUT_MISSING] 缺少字段: …"}` |
-| 非 UTF-8 文件 | **1** | 未捕获 `UnicodeDecodeError`，Python traceback 到 stderr（实测 PowerShell 退出码 1） |
+| 非 UTF-8 文件 | **2** | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`（无 missing）——重写修正，见 #6 |
 | 有 FAIL finding | 1 | 正常 JSON/文本 |
 | 仅 WARN 或全 PASS | 0 | 正常 JSON/文本 |
-| 缺 `--platform` / 非法平台 | 2 | 无统一 JSON；argparse usage 到 stderr |
+| 缺 `--file` / `--platform` / 非法平台 | 2 | argparse usage + error 到 stderr，stdout 空 |
 
-`listing_lint` 的上述错误信息在非 JSON 模式下也写到 **stdout**，stderr 为空（实测非 UTF-8 例外，traceback 走 stderr）。
+`listing_lint` 的上述错误信息在非 JSON 模式下也写到 **stdout**，stderr 为空（argparse 参数错误除外）。
 
 ## 5. 计算规则
 
@@ -270,6 +270,7 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | `DESC_PROMO` | WARN/PASS | 描述命中 HARD_PROMO（**排除单词 `hot`**） |
 | `APLUS_PROMO` | WARN | A+ 模块命中同一列表 |
 | `APLUS_PRESENT` | PASS | 提供了非空 A+ 数组 |
+| `APLUS_ORDER` | FAIL | 新增（#7）：按模块文案识别 7 个阶段（主视觉→核心收益→使用步骤→细节→对比→包装清单→信任）；缺「主视觉」或「包装清单」、或识别出的阶段序非递增时 FAIL；顺序正常时不输出任何 finding |
 | `CJK_CHARS` / `EMOJI` | FAIL | 描述与每个 A+ 模块 |
 
 **TikTok 专属**
@@ -313,7 +314,7 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | 2 | 两个来源互斥 exit 2 | 同时给 `--file` 与 `--text` | exit 2；不读文件，直接报「只能二选一」 | 保留 |
 | 3 | HIGH 才影响退出码 | 仅 MEDIUM/LOW 命中 | `verdict=WARN` 但 exit **0**；例：`premium/professional/advanced` → exit 0 | 保留（文档需强调） |
 | 4 | HIGH → exit 1 | 任一 HIGH | `verdict=FAIL`，exit 1 | 保留 |
-| 5 | 解码失败 exit 2 但无 `missing` | GBK 中文文件 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`；stderr 为空 | 建议补 `missing:["file"]` |
+| 5 | 解码失败 exit 2 但无 `missing` | GBK 中文文件 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`；stderr 为空 | 保留旧样（与 05 的 #12 语义一致） |
 | 6 | 错误信息走 stdout | 非 JSON 模式的全部输入错误 | 实测 stderr 长度 0，message 打到 stdout | 建议改为 stderr（与 03 对齐） |
 | 7 | `--ip-rating 0` 被当作“已声明等级” | `--ip-rating 0` | `waterproof` 降为 MEDIUM，输出「已声明 IP 等级 0」；exit 0 | 建议把 `0` 加入无等级集合 |
 | 8 | GBK 纯 ASCII 文件不报错 | 文件仅含 ASCII | 能正常解码，扫描继续 | 属正常，编码探测仅按 UTF-8 |
@@ -323,7 +324,7 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | 12 | `listing_lint` FAIL → exit 1 | 任一 FAIL | 例：210 字符标题 + 1 条 bullets → FAIL 2、WARN 3、exit 1 | 保留 |
 | 13 | 仅 WARN → exit 0 | 无 FAIL | verdict=WARN、exit 0 | 保留 |
 | 14 | `verdict` 与退出码非一一对应 | verdict=WARN | 也可能 exit 0；不是 1 | 文档需列映射表 |
-| 15 | 非 UTF-8 直接 traceback | Listing JSON 用 GBK 中文 | 未捕获 `UnicodeDecodeError`，退出码 **1**（非 2），无 JSON | 必须修正 |
+| 15 | 非 UTF-8 直接 traceback（旧侧） | Listing JSON 用 GBK 中文 | 旧侧未捕获 `UnicodeDecodeError` → exit 1、无 JSON；重写改为 exit 2 + `INPUT_ERROR`（#6） | 已修正 |
 | 16 | 缺 `--platform` 无 JSON 契约 | 不传或传非法值 | argparse usage 到 stderr，exit 2，stdout 空 | 建议统一错误出口 |
 | 17 | `item_name` 存在时忽略 `title` 长度 | Amazon 且 `item_name` 非空 | 用 `item_name + item_highlights` 校验；但 `title` 仍属必填 | 文档写明双轨 |
 | 18 | 拆分标题必填项 | 只给 `item_name`/`item_highlights` | 缺 `title` → INPUT_MISSING（required_fields 仍要 `title`） | 建议放宽 |
@@ -443,9 +444,9 @@ python Agents/04_Listing_Agent/scripts/listing_lint.py --file Agents/04_Listing_
 ## 8. 未完整刻画 / 待确认
 
 - `100 %`（数字与 `%` 之间有空格）是否命中未实测，仅按正则推导为不命中。
-- `listing_lint` 的 `TITLE_SPLIT_REQUIRED`、`BRAND_TOO_LATE` 边界（恰好在第 80/81 字符）未单独构造用例。
+- 标题长度 80/81、200/201 边界已用单元测试与对拍固定；`BRAND_TOO_LATE` 恰在第 80/81 字符的位次边界仍未单独构造用例。
 - `product_attributes` 为对象且含重复大小写键、数组元素无冒号时的覆盖顺序未穷举。
 - HARD_PROMO 中 `#1` 的子串边界（如 `#10`）未实测。
 - `claim_scan` 的 `--text` 含 BOM 字符、`\r\n` 与 `char_count` 的关系未单独验证。
 - `listing_lint` 对非字符串 `title`、`brand` 的强制 `str()` 行为未实测。
-- 两份脚本的 argparse 错误均不走统一 JSON 契约，重写时需产品确认是否修正。
+- 两份脚本的 argparse 参数错误均不走统一 JSON 契约（与旧侧一致），按现状保留。

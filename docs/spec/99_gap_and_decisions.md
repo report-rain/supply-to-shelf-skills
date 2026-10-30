@@ -102,7 +102,7 @@
 - 01：verdict 取整边界、normalize 全空行/写盘失败、单行竞争分（NaN/Inf 已在第二批实施 #5 解决，见 `01_selection.md` §8.1）。
 - 02：HTS 短前缀匹配、类目路径歧义样例、旧 referral 结构分支、matrix 非法 season、列表命令 JSON。
 - 03：并列前缀歧义文案、rules.json BOM、`rules_direct` 触发。
-- 04：`100 %` 与 80/81 字符边界；listing_lint GBK 解码。
+- 04：`100 %`（数字与 `%` 之间带空格）是否命中；`BRAND_TOO_LATE` 恰在第 80/81 字符的位次边界未单独构造。（GBK 解码已由 #6 落定，80/81、200/201 已由单测与对拍固定。）
 - 05：~~损坏图/0 尺寸退出码~~（第二批实施 #3 已解决）、静态 WebP、视频数值字段非法（`width:"abc"`）仍 traceback。
 - 06：`status=ERROR` 无触发路径；费率数值未被实际引用。
 - 07：行级错误是否中止整表（按现状记录，需补一例反证）。
@@ -111,7 +111,7 @@
 ## 有意差异（intended diffs）
 
 > 本清单是用户明确批准的、允许偏离旧实现的行为集合。**清单之外**的任何 stdout/stderr/退出码/JSON 差异一律视为回归。
-> 本轮（骨架 + 02 + 03）已实施 #8；第二批（01 + 05）已实施 #1–#5；#6–#7、#9–#11 仅登记，待实现到对应模块时落地。
+> 批次 1（骨架 + 02 + 03）已实施 #8；批次 2（01 + 05）已实施 #1–#5；批次 2.5 已实施 #12–#14；批次 3（04 + 07）已实施 #6、#7、#9；#10–#11 待批次 4（08）落地。
 
 | # | 模块 | 旧行为 | 新行为 | 依据 | 影响面 | 本轮状态 |
 |---|---|---|---|---|---|---|
@@ -120,10 +120,10 @@
 | 3 | 05 | 损坏图 / 0 尺寸 / 不可解码 → 抛 traceback | 返回明确状态码 + exit 2，不抛 traceback | 用户清单 §3 | 05 图片/视频异常路径 | **已实施**：`asset_check.py` 的 `load_rgb()`（`INPUT_ERROR`「图片无法解码…」/「图片尺寸非法（0 像素）」）与 `run_video` 宽高校验（`INPUT_ERROR`「视频尺寸非法」）；测试 `tests/test_creative.py::InputErrorTests`（0 尺寸用 `mock` 覆盖） |
 | 4 | 01 | 单行脏数据（非数字等）中途异常退出 | 报具体行号与列名，exit 2，不静默产出错误数值 | 用户清单 §4 | 01 单行校验；成功行数值不变 | **已实施**：`normalize_export.py` 的 `parse_number`（`第 N 行 price='abc' 不是数字`）；测试 `tests/test_selection.py::NormalizeExportTests::test_dirty_row_reports_line_and_column` |
 | 5 | 01 | NaN/Inf 进入计算并静默产出 | 显式校验并报错，不进入计算 | 用户清单 §5 | 01 数值校验 | **已实施**：`normalize_export.py` 的 `parse_number`（`math.isfinite` → `第 N 行 price='inf' 不是有限数值（NaN/Inf）`）；测试 `tests/test_selection.py::NormalizeExportTests::test_nan_rejected`/`test_inf_rejected` |
-| 6 | 04 | GBK 等解码失败 → 原始 traceback | 明确错误信息 + exit 2 | 用户清单 §6 | 04 listing_lint 读取路径 | 待实施 |
-| 7 | 04 | 未校验 A+ 模块顺序，缺模块/乱序仍可通过 | 按文档承诺的顺序校验；缺必需模块或顺序错误判 FAIL | 用户清单 §7 | 04 A+ 校验结果（原先可通过的组合可能转为 FAIL）；其余校验不变 | 待实施 |
+| 6 | 04 | GBK 等解码失败 → 原始 traceback（`listing_lint` 退出 1） | 明确错误信息 + exit 2（`INPUT_ERROR`，无 `missing`） | 用户清单 §6 | 04 listing_lint 读取路径 | **已实施**：`listing_lint.py` 的 `main()` 捕获 `UnicodeDecodeError`；`claim_scan.py` 同口径（旧侧已如此）。测试 `tests/test_listing.py::ListingLintAmazonTests::test_non_utf8_file_exit_2` 等 |
+| 7 | 04 | 未校验 A+ 模块顺序，缺模块/乱序仍可通过 | 按文档承诺的顺序校验；缺必需模块或顺序错误判 FAIL | 用户清单 §7 | 04 A+ 校验结果（原先可通过的组合可能转为 FAIL）；其余校验不变 | **已实施**：`listing_lint.py` 的 `check_aplus_order()`（7 阶段识别；缺主视觉/包装清单或序非递增 → `APLUS_ORDER` FAIL）；测试 `tests/test_listing.py::ListingLintAmazonTests::test_aplus_out_of_order_fails`/`test_aplus_missing_hero_fails` |
 | 8 | 02 | 未显式传 `--customs-fee-per-unit` 时，note 为「未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算」，JSON 无占位标记 | note 前面加 `[WARN] `；`inputs` 新增 `customs_fee_placeholder: true/false`（显式传入时为 false） | 用户清单 §8：占位值须显式告警并可机读识别 | calc 的 `notes[]` 与 `inputs`；matrix 的 `rows[].notes[]` 与 `rows[].inputs`；其余字段与数值不变 | **已实施** |
-| 9 | 07 | 无此开关，CRITICAL 也退出 0 | 新增 `--fail-on-critical`：开启时 CRITICAL 退出 1；默认关闭保持旧行为 | 用户清单 §9 | 07 默认路径不变；仅新开关生效时改变退出码 | 待实施 |
+| 9 | 07 | 无此开关，CRITICAL 也退出 0 | 新增 `--fail-on-critical`：开启时 CRITICAL 退出 1；默认关闭保持旧行为 | 用户清单 §9 | 07 默认路径不变；仅新开关生效时改变退出码 | **已实施**：`Agents/07_Review_Ops_Agent/scripts/review_ops.py`（`health` 子命令退出码 `1 if (fail_on_critical and grade == "CRITICAL") else 0`）；测试 `tests/test_review_ops.py::HealthTests::test_fail_on_critical_flag` |
 | 10 | 08 | `--carrying-rate-pct` 无上下限校验 | 取值校验 0–100，越界 exit 2 | 用户清单 §10 | 08 参数校验；合法区间内结果不变 | 待实施 |
 | 11 | 08 | 示例文档写 4995，脚本实算 4335 | 以脚本实算为准修正文档 | 用户清单 §11 | 仅文档；脚本行为不变 | 待实施 |
 | 12 | 05 | 视频数值字段非法 / JSON 损坏 / 编码不可读 → traceback + exit 1 | 全部输入异常统一 `status=INPUT_ERROR` + exit 2，无 traceback | 无人值守指令阶段 2.5 | 05 视频 spec 解析与数值校验；成功路径不变 | **已实施**：`asset_check.py` 的 `video_number()`、`run_video()` 异常分支；测试 `tests/test_creative.py::InputErrorTests` 四条 |
@@ -131,7 +131,7 @@
 | 14 | 05 | `--fix` 指向原图会覆盖源文件 | 拒绝覆盖，`status=INPUT_ERROR` + exit 2 | 无人值守指令阶段 2.5 | 05 `--fix` 同路径分支；其他路径不变 | **已实施**：`asset_check.py` 的 `run_image()`；测试 `tests/test_creative.py::InputErrorTests::test_fix_same_path_rejected` |
 
 补充说明（#7 与 #11 的编号对应）：
-- #7 04 A+ 模块顺序：旧实现未校验模块顺序。新行为——补上顺序校验，缺必需模块或顺序错误判 FAIL。依据：用户清单 §7；影响面：04 A+ 校验结果（原先可通过的组合可能转为 FAIL）。本轮状态：待实施。
+- #7 04 A+ 模块顺序：旧实现未校验模块顺序。新行为——补上顺序校验，缺必需模块或顺序错误判 FAIL。依据：用户清单 §7；影响面：04 A+ 校验结果（原先可通过的组合可能转为 FAIL）。本轮状态：已实施（见上表第 7 行）。
 
 ### 明确不修（保持旧行为）
 - 01 粗筛用 4.75 估 FBA、02 精算 5.93：分层设计，非 bug。

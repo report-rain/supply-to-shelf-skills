@@ -42,6 +42,7 @@
 | 参数名 | 类型 | 必填 | 默认值 | 取值范围/枚举 | 说明 |
 |---|---|---|---|---|---|
 | `--file` | str | 是 | — | 存在的 JSON | 账号健康指标文件 |
+| `--fail-on-critical` | flag | 否 | `false` | — | 新增（#9）：总等级为 `CRITICAL` 时以 exit 1 结束；默认关，不影响旧行为 |
 | `--json` | flag | 否 | `false` | — | 结构化输出 |
 
 冲突与隐式假设：
@@ -154,7 +155,7 @@
 | `one_two_star_count` | int | 条 | 1–2 星总数 |
 | `one_two_star_pct` | number | %，2 | 1–2 星 ÷ 总数 |
 | `negative_rate_pct` | number | %，2 | 与 1–2 星百分比同值 |
-| `negative_count` | int | 条 | rating ≤ 2 的条数（含 2.5 等小数） |
+| `negative_count` | int | 条 | 与 `one_two_star_count` 同值（rating < 3） |
 | `negative_share_pct` | number | %，2 | 差评 ÷ 总数 |
 | `three_star_pct` | number | %，2 | 分桶 `"3"` ÷ 总数 |
 | `positive_pct` | number | %，2 | 分桶 `"4"`+`"5"` ÷ 总数 |
@@ -299,7 +300,8 @@ Top 原因：
 - 总数 = 数据行数。
 - 平均分 = 原始评分算术平均，保留 2 位。
 - 分桶 = `int(rating)` 截断到 1–5：4.5 归 4，2.5 归 2，4.9 归 4；`"5"` 桶只含恰好 5（及 5.0）。
-- 差评定义：`rating <= 2`（因此 2.5 计为差评，但归入 2 星桶）。
+- 差评定义（计数）：`rating < 3`（因此 2.5 计入差评，归入 2 星桶）。
+- 差评归因：只对 `rating <= 2` 的评论做分类，2.5 这类小数评分不参与归因（旧侧口径，已实测）。
 - 1–2 星占比 = `one_two_star_count / total ×100`；`negative_rate_pct` 取同值。
 - 3 星占比 = 桶 `"3"` / 总数；4–5 星占比 = (`"4"`+`"5"`) / 总数。
 - 所有分母为 0 时（无评论）返回 0.0，但空文件已先失败，正常路径不会出现。
@@ -347,7 +349,7 @@ Top 原因：
 | 缺必需列 | 评论缺 `body` | 退出 2；`missing=["body"]`；列出可用列 | 保留 |
 | 可选列缺失 | 无 title/date/verified/variant | 不报错；title 用空串，其余不输出 | 保留；但 date/verified/variant 读了不用，属死字段 |
 | 评分小数 | rating=4.5 | 平均 4.5；分桶 `"4"` 为 1；差评不增加（实跑） | 修正或明确：分桶截断会低估 5 星 |
-| 差评小数 | rating=2.5 | 不计差评（差评条件为 ≤2）；但分桶为 `"2"`（实跑 4.5 同理归 4） | 修正：负向定义与桶口径不一致，2.5 会进 2 星桶却不计差评 |
+| 差评小数 | rating=2.5 | 计入 `one_two_star_count`（条件为 <3）、分桶 `"2"`；但不参与归因（`attribution=0`、`negative_reviews=[]`），`fixable_rate` 分母仍为 1（实跑） | 保留旧样；口径已写入 §5.1 |
 | 零差评 | 全部 5 星 | 退出 0；negative=0、negative_share=0、fixable_rate=0、top_issues=[]、negative_reviews=[] | 保留；需避免下游除以 0 |
 | 归因并列 | 同时命中「质量」与「清洁」且次数相同 | 取分类顺序更靠前者（质量做工），无警告 | 保留确定性；可在 `rules` 说明 |
 | 关键词子串误判 | `clean` 出现在「clean design」 | 归入「清洁异味」，可能误判 | 修正：需要词边界或短语白名单 |
@@ -418,6 +420,7 @@ python scripts/review_ops.py health --file examples/sample-health.json --json
 | reviews 第 3 行 rating=7（前一行合法） | 退出 2，无部分输出；`missing=[]` |
 | reviews 全部 5 星（3 条） | 退出 0；平均 5.0、`"5":3`、negative=0、`top_issues=[]` |
 | reviews rating=4.5（1 条） | 退出 0；平均 4.5、`"4":1`、negative=0 |
+| reviews rating=2.5（1 条） | 退出 0；`one_two_star_count=1`、桶 `"2"`、`attribution` 全 0、`negative_reviews=[]` |
 | reviews `body` 为空 | 退出 2，`missing=[]` |
 | returns qty=2.5 | 退出 2，`missing=[]` |
 | returns 退款 -5 | 退出 2，`missing=[]` |
@@ -431,10 +434,11 @@ python scripts/review_ops.py health --file examples/sample-health.json --json
 | health `odr_pct=-1` | 退出 2；`missing=[]`，`message` 指明不能为负 |
 | health 自定义 JSON，A-to-Z=1、其余达标 | 退出 0；`grade=WARN`、`warn_count=1` |
 | health 传入 CSV 当 JSON | 退出 2；`missing=["file"]`，信息「不是合法 JSON」 |
+| health + `--fail-on-critical`，等级 CRITICAL | 退出 1（默认不带该参数时仍为 0） |
 
 ## 8. 未完整刻画/待确认
 
-- 差评分桶与差评定义不一致（`<=2` vs `int` 截断）是否为业务预期未确认；2.5 分评论的实际归类需产品确认。
+- 2.5 分评论「计入差评计数但不参与归因」的旧口径已按实测保留（§5.1、§6），是否属业务预期待产品确认。
 - 关键词匹配是子串匹配，误判率未量化；是否需要词边界/否定词处理未确认。
 - 07 没有外部阈值/关键词配置，修改必须改代码；是否应外置未确认。
 - `date`/`verified`/`variant` 读取但不输出，是否应参与输出未确认。
