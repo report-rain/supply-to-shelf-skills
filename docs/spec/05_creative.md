@@ -32,7 +32,7 @@
 3. `--spec` 与 `--fix` 同时给出 → `[INPUT_MISSING] --fix 仅用于图片，不能与 --spec 同用`。
 4. `--fix` 需要 Pillow；未安装 → `[INPUT_MISSING] --fix 需要 Pillow，当前未安装`。
 5. `--fix` 模式下源图片不存在 → `[INPUT_MISSING] 找不到图片: …`，exit 2。
-6. 不给 `--fix` 时源图片不存在 → 生成一条 `FILE_NOT_FOUND` FAIL，exit **1**（与文档口径不符，见 §6）。
+6. 不给 `--fix` 时源图片不存在 → 生成一条 `FILE_NOT_FOUND` FAIL，退出码 **2**（旧实现 1；本批 #2 已实施，输出形态不变）。
 7. `--platform` 缺失/非法由 argparse 处理，exit 2，无统一 JSON。
 
 ## 3. 输入契约
@@ -110,7 +110,7 @@
 ```
 
 - 首行按 `mode` 显示「图片/视频规格检查」；平台名固定 `Amazon US` / `TikTok Shop US`。
-- Pillow 缺失且为图片模式时，在 findings 前额外打印 `[WARN] Pillow 未安装：已跳过像素项，仅校验文件大小`（该行不是 finding，不计入 counts）。
+- Pillow 缺失且为图片模式时，会产出一条普通 finding `[WARN] PILLOW_MISSING (image): Pillow 未安装，跳过尺寸/比例/白底/主体占比等像素项；安装后重跑`，**计入 counts**（实测 `{PASS:2, WARN:1, FAIL:0}`，exit 0）。旧文档曾描述为「不计入 counts 的额外行」，实测为计数 finding，此处以实测为准。
 
 ### 4.2 失败契约
 
@@ -120,18 +120,26 @@
 {"status":"INPUT_MISSING", "message":"..."}
 ```
 
-- 视频 spec 的 JSON 语法错误消息以 `[INPUT_ERROR] JSON 解析失败: …` 开头，但外层 `status` 仍是 `INPUT_MISSING`（实测）。
+- 视频 spec 的 JSON 语法错误消息以 `[INPUT_ERROR] JSON 解析失败: …` 开头，但外层 `status` 仍是 `INPUT_MISSING`（实测，本批保持不变）。
 - 视频 spec 顶层非对象 → `[INPUT_MISSING] 顶层必须是 JSON 对象`。
 - 文件不存在 → `[INPUT_MISSING] 找不到文件: …`。
+- **本批新增（#3）**：损坏/不可解码图片、0 尺寸图片、视频 0 宽或 0 高，统一输出 `{"status":"INPUT_ERROR", "message":"[INPUT_ERROR] …"}`，exit 2，不再抛 traceback。消息模板：
+  - `[INPUT_ERROR] 图片无法解码（文件损坏或非图片）: <path>`
+  - `[INPUT_ERROR] 图片尺寸非法（0 像素）: <path>（0x500）`
+  - `[INPUT_ERROR] 视频尺寸非法：0×1920（宽高必须为正数）`
+- 仍保留旧行为（清单外不得改）：视频数值字段非数字（如 `width:"abc"`）依旧抛出 `ValueError` traceback、exit 1。
 
 ### 4.3 退出码矩阵
 
 | 场景 | exit | 关键输出 |
 |---|---|---|
 | 图片：全部 PASS / 仅 WARN | 0 | `verdict=PASS/WARN` |
-| 图片：任一 FAIL（含 `FILE_NOT_FOUND`） | 1 | `verdict=FAIL`；缺图仅一条 FAIL |
+| 图片：任一 FAIL（不含缺图） | 1 | `verdict=FAIL` |
+| 图片：缺图（无 `--fix`） | **2** | 仍为单条 `FILE_NOT_FOUND` FAIL（#2）；与「任一 FAIL → 1」分道 |
+| 图片：损坏 / 不可解码 / 0 尺寸 | **2** | `status=INPUT_ERROR`（#3） |
 | 视频：全部 PASS | 0 | `verdict=PASS`；TikTok 样例 7 条 PASS |
 | 视频：任一 FAIL | 1 | `verdict=FAIL`；Amazon 9:16 样例 1 FAIL + 6 PASS |
+| 视频：宽或高为 0 | **2** | `status=INPUT_ERROR`（#3） |
 | 缺 image 与 spec / 两者同给 / spec+fix / fix 缺 Pillow / fix 源图不存在 | 2 | `status=INPUT_MISSING` |
 | spec 不存在 / JSON 坏 / 缺字段 | 2 | `status=INPUT_MISSING`（坏 JSON 的 message 带 `[INPUT_ERROR]`） |
 | `--platform` 缺失或非法 | 2 | argparse usage 到 stderr；无 JSON |
@@ -142,7 +150,7 @@
 
 1. 文件大小：`size_mb = bytes / (1024 * 1024)`；`> max_mb` → FAIL `IMAGE_FILE_TOO_LARGE`，否则 PASS `IMAGE_FILE_SIZE`。消息保留 2 位小数。
 2. 格式：扩展名不在允许集合 → FAIL `IMAGE_FORMAT`；否则 PASS。
-3. Pillow 缺失：WARN `PILLOW_MISSING`，仅完成大小与格式检查，追加人工清单，不再做像素项；`verdict=WARN`、exit 0。
+3. Pillow 缺失：产出一条 WARN `PILLOW_MISSING`（计入 counts），仅完成大小与格式检查，追加人工清单，不再做像素项；`verdict=WARN`、exit 0。
 4. 动图：`is_animated` 为真 → FAIL `IMAGE_ANIMATED`（不中断后续检查）。
 5. 长边 `long_edge=max(width,height)`：
    - `< upload_min_edge` → FAIL `IMAGE_TOO_SMALL`
@@ -205,7 +213,7 @@
 | Amazon 1600×1600、主体 75.1% | PASS 5 + FAIL 1（`SUBJECT_TOO_SMALL`） | FAIL → 1 |
 | TikTok 800×800、主体 87.5% | PASS 4 + WARN 1（`IMAGE_BELOW_RECOMMENDED`） | WARN → 0 |
 | Amazon 800×800 纯白 | PASS 4 + WARN 1（`IMAGE_NO_ZOOM`）+ FAIL 1（`SUBJECT_NOT_FOUND`） | FAIL → 1 |
-| 图片不存在 | FAIL 1（`FILE_NOT_FOUND`） | FAIL → 1 |
+| 图片不存在 | FAIL 1（`FILE_NOT_FOUND`） | FAIL → **2**（#2） |
 | TikTok 规范样例视频 | PASS 7 | PASS → 0 |
 | Amazon 用 9:16 视频 | PASS 6 + FAIL 1（`VIDEO_ASPECT`） | FAIL → 1 |
 
@@ -213,7 +221,7 @@
 
 | # | 现象 | 触发条件 | 现状行为（实测） | 建议 |
 |---|---|---|---|---|
-| 1 | 缺图片退出码与文档不符 | `image` 路径不存在、未给 `--fix` | `FILE_NOT_FOUND` FAIL、`verdict=FAIL`、**exit 1**；脚本文档写「2=输入缺失」 | 建议统一为 2 或修正文档 |
+| 1 | ~~缺图片退出码与文档不符~~ | `image` 路径不存在、未给 `--fix` | **已实施 #2**：仍输出单条 `FILE_NOT_FOUND` FAIL、`verdict=FAIL`、`manual_checks=[]`，但退出码改为 **2** | 已解决（输出形态不变，只改退出码） |
 | 2 | FAIL/WARN 判定导致 exit 1 | 任一 FAIL | 例：1600×1600 主体 75.1% → `SUBJECT_TOO_SMALL` FAIL，exit 1；视频 Amazon 9:16 → `VIDEO_ASPECT` FAIL，exit 1 | 保留 |
 | 3 | 仅 WARN 也 exit 0 | 无 FAIL | 例：TikTok 800×800 → `IMAGE_BELOW_RECOMMENDED` WARN，exit 0 | 保留 |
 | 4 | 缺入参 exit 2 | 无 image/spec、两者同给 | `status=INPUT_MISSING`，`message` 明确；无 `missing` 键 | 建议补 `missing` |
@@ -224,7 +232,7 @@
 | 9 | 视频布尔字段按真值强转 | `"has_subtitles":"false"` | `bool("false")=True` → PASS；`"first_frame_product":"false"` 同样 PASS | 必须修正（解析 true/false） |
 | 10 | 视频坏 JSON 的状态名不一致 | spec 语法错误 | JSON：`status=INPUT_MISSING`，message 前缀 `[INPUT_ERROR]` | 建议 status=INPUT_ERROR |
 | 11 | 错误信息走 stdout | 全部输入错误 | 非 JSON 模式也是 stdout；stderr 为空 | 建议改 stderr |
-| 12 | 数值字段非法会 traceback | `width:"abc"` | `int()` 抛 `ValueError`，未捕获，exit 1，无 JSON | 建议捕获为 INPUT_ERROR |
+| 12 | 数值字段非法会 traceback | `width:"abc"` | `int()` 抛 `ValueError`，未捕获，exit 1，无 JSON | **本批未改**（不在 #1–#5 清单内，保真旧样），列为规格缺口 |
 | 13 | Pillow 缺失只降级不失败 | 环境无 Pillow | WARN `PILLOW_MISSING`，跳过像素/比例/白底/主体项，exit 0 | 保留（但需提示复核） |
 | 14 | 动图仅在图片模式检测 | GIF/WebP 动图 | `IMAGE_ANIMATED` FAIL；静态 GIF 可过格式 | 保留 |
 | 15 | TikTok 允许 3:4 | 比例 0.75±0.0075 | PASS，但分辨率仍按 800 长边/1080 推荐判定 | 保留 |
@@ -236,8 +244,8 @@
 | 21 | `--platform` 无统一错误出口 | 缺失/非法 | argparse usage 到 stderr，exit 2，stdout 空 | 建议统一 |
 | 22 | 视频最低时长缺省 | Amazon 短视频 | 只校验 `>60s`，0.1s 也 PASS | 产品确认是否补下限 |
 | 23 | `--fix` 会自动创建输出目录 | 输出目录不存在 | `os.makedirs(..., exist_ok=True)` 后写文件，不报错 | 保留 |
-| 24 | 损坏/伪装图片会 traceback | 扩展名合法但内容不可解码 | Pillow `UnidentifiedImageError` 未捕获，exit 1、无 JSON | 建议捕获为 INPUT_ERROR |
-| 25 | 数值 0 能过必填但会除零 | `height=0`（或宽高均为 0） | 必填校验只排除 `None/""`，0 通过；随后 `width/height` 抛 `ZeroDivisionError` | 建议校验正数 |
+| 24 | ~~损坏/伪装图片会 traceback~~ | 扩展名合法但内容不可解码 | **已实施 #3**：`status=INPUT_ERROR`、message「图片无法解码（文件损坏或非图片）」、exit 2，无 traceback | 已解决 |
+| 25 | ~~数值 0 能过必填但会除零~~ | `height=0`（或宽高均为 0） | **已实施 #3**：视频宽高 ≤0 → `status=INPUT_ERROR`「视频尺寸非法」exit 2；图片解码后尺寸 ≤0 → `status=INPUT_ERROR`「图片尺寸非法（0 像素）」exit 2 | 已解决 |
 | 26 | `--fix` 输出可与输入同路径 | `--fix` 指向原图 | 先读入内存再保存，原图被覆盖；`source_file` 仍记旧路径 | 建议拒绝同路径 |
 
 ## 7. 对拍基准（必须可复现）
@@ -311,13 +319,13 @@ python Agents/05_Creative_Agent/scripts/asset_check.py "$env:TEMP\img_tt.png" --
 
 期望：exit 0；`verdict=WARN`；`counts={PASS:4,WARN:1,FAIL:0}`；WARN 为 `IMAGE_BELOW_RECOMMENDED`（800 <1080）；`IMAGE_ASPECT` PASS 1:1；`SUBJECT_RATIO` PASS ≥60%。
 
-3. **图片不存在（FAIL，exit 1）**
+3. **图片不存在（FAIL，exit 2）**
 
 ```powershell
 python Agents/05_Creative_Agent/scripts/asset_check.py no-such.png --platform amazon_us --json
 ```
 
-期望：exit 1；`verdict=FAIL`；`counts={PASS:0,WARN:0,FAIL:1}`；唯一 finding `FILE_NOT_FOUND`；`manual_checks=[]`。
+期望：exit 2（#2，旧实现为 1）；`verdict=FAIL`；`counts={PASS:0,WARN:0,FAIL:1}`；唯一 finding `FILE_NOT_FOUND`；`manual_checks=[]`；无 `missing` 键。
 
 4. **`--fix` 重查（exit 1）**
 
@@ -335,16 +343,40 @@ python Agents/05_Creative_Agent/scripts/asset_check.py "$env:TEMP\img_amz.png" -
 python Agents/05_Creative_Agent/scripts/asset_check.py no-such.png --platform amazon_us --fix "$env:TEMP\fixed.png" --json
 ```
 
-期望：前两条 exit 2（缺少入参 / 两者互斥）；第三条 exit 2、message「找不到图片」（`--fix` 分支在检查前直接返回，与不带 `--fix` 的 exit 1 形成差异）。
+期望：前两条 exit 2（缺少入参 / 两者互斥）；第三条 exit 2、message「找不到图片」（`--fix` 分支在检查前直接返回，与不带 `--fix` 的 exit 2 同码但输出形态不同）。
 
 ## 8. 未完整刻画 / 待确认
 
-- 视频数值字段（`width:"abc"`、`duration_sec:null`）的异常路径未逐项实测；仅按 `int()/float()` 推断为 traceback + exit 1。
+- ~~视频数值字段（`width:"abc"`、`duration_sec:null`）的异常路径未逐项实测~~ → 已探测：`width:"abc"` 旧实现 `ValueError` traceback、exit 1、stdout 空；本批**刻意保留**（不在 #1–#5 清单内），列为规格缺口。
+- ~~`--fix` 覆盖原图、损坏图片、零尺寸的异常路径仅按代码推导~~ → 已探测：损坏图 / 0 尺寸在 `--fix` 路径同样走 `INPUT_ERROR` + exit 2（#3）；`--fix` 指向原图仍会覆盖原文件（保留旧样）。
 - `--fix` 对透明 PNG、渐进 JPEG、CMYK 输入的实际输出质量未验证。
 - 动图检测对 WebP/APNG 的支持依赖 Pillow 版本，未单独构造样本。
 - 边缘 2% 边带的实际取样边界（宽/高取整）未做像素级对拍。
 - Amazon/TikTok 官方阈值均为「编写时公开口径」，未与卖家中心最新规则逐条核对。
 - `manual_checks` 的文案被视为展示内容，重写时是否逐字保留需产品确认。
 - `--platform` 缺失时的 argparse 输出不属于统一错误契约，未纳入 JSON 对拍。
-- `--fix` 覆盖原图、损坏图片、零尺寸的异常路径仅按代码推导，未实测退出码是否为 1。
 - 静态 WebP 的实际解码与 `is_animated` 取值依赖 Pillow 编译选项，未验证。
+- 0×0 图片无法用 Pillow 真实构造（`Image.save` 拒绝），0 尺寸分支由 `unittest.mock` 伪造 `Image.size` 覆盖，见 `tests/test_creative.py`。
+- 视频坏 JSON 的 `status` 仍为 `INPUT_MISSING`（#3 只覆盖图片解码/尺寸与视频宽高），是否统一为 `INPUT_ERROR` 待产品确认。
+
+### 8.1 探测记录（probe，2026-10-30）
+
+旧实现 = `e:\SKILLS\supply-to-shelf-skills\Agents\05_Creative_Agent\scripts\asset_check.py`，全部命令均带 `$env:PYTHONIOENCODING='utf-8'`。
+
+| # | 命令要点 | 旧实现观察 | 新实现结论 |
+|---|---|---|---|
+| 1 | `no-such.png --platform amazon_us --json` | exit 1、`FILE_NOT_FOUND` FAIL、`manual_checks=[]`、stderr 空 | #2：输出不变，exit 2 |
+| 2 | `no-such.png --platform amazon_us --fix out.png --json` | exit 2、`status=INPUT_MISSING`、message「找不到图片」 | 保留 exit 2 |
+| 3 | 文本文件改名 `.png`，`--platform amazon_us --json` | `UnidentifiedImageError` traceback，exit 1，stdout 空 | #3：`INPUT_ERROR`「图片无法解码…」exit 2 |
+| 4 | `height=0` 视频 spec | `ZeroDivisionError` traceback，exit 1 | #3：`INPUT_ERROR`「视频尺寸非法」exit 2 |
+| 5 | `width:"abc"` 视频 spec | `ValueError` traceback，exit 1 | 保留（清单外） |
+| 6 | 300×300 全白 PNG | FAIL `IMAGE_TOO_SMALL` + `SUBJECT_NOT_FOUND`，counts `{PASS:4,WARN:0,FAIL:2}`，exit 1 | SAME |
+| 7 | 1600×1600、主体占 87.5% | PASS 6、exit 0；主体 75.1% → `SUBJECT_TOO_SMALL`、counts `{PASS:5,WARN:0,FAIL:1}` | SAME |
+| 8 | TikTok 800×800 | `IMAGE_BELOW_RECOMMENDED` WARN、exit 0 | SAME |
+| 9 | 无 Pillow（`importlib` 屏蔽） | WARN `PILLOW_MISSING`、counts `{PASS:2,WARN:1,FAIL:0}`、exit 0 | SAME |
+| 10 | 比例 4:5 / 9:16 / 3:4 各平台 | 各条 finding 文案与顺序逐字复刻 | SAME |
+| 11 | 视频 spec 缺字段 / 非对象 / 语法错误 | 缺字段按 `VIDEO_FIELDS` 顺序拼接；语法错误 `status=INPUT_MISSING` + `[INPUT_ERROR]` 前缀；非对象「顶层必须是 JSON 对象」 | SAME（状态名缺口见上） |
+| 12 | `--fix` 嵌套不存在的输出目录 | 自动 `makedirs`，`FIX_SAVED` PASS，重查原 finding | SAME |
+
+对拍 harness 将这些场景与 01 的场景一起固化在 `tests/compare_oracle.py`（05 共 17 例）。
+

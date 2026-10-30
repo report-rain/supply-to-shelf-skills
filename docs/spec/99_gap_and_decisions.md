@@ -99,11 +99,11 @@
 - 影响：`08_fulfillment.md` §5、§8。
 
 ## 附：规格中已标记「未确认」的条目（实现前需补测）
-- 01：verdict 取整边界、NaN/Inf、normalize 全空行/写盘失败、单行竞争分。
+- 01：verdict 取整边界、normalize 全空行/写盘失败、单行竞争分（NaN/Inf 已在第二批实施 #5 解决，见 `01_selection.md` §8.1）。
 - 02：HTS 短前缀匹配、类目路径歧义样例、旧 referral 结构分支、matrix 非法 season、列表命令 JSON。
 - 03：并列前缀歧义文案、rules.json BOM、`rules_direct` 触发。
 - 04：`100 %` 与 80/81 字符边界；listing_lint GBK 解码。
-- 05：损坏图/0 尺寸退出码、静态 WebP。
+- 05：~~损坏图/0 尺寸退出码~~（第二批实施 #3 已解决）、静态 WebP、视频数值字段非法（`width:"abc"`）仍 traceback。
 - 06：`status=ERROR` 无触发路径；费率数值未被实际引用。
 - 07：行级错误是否中止整表（按现状记录，需补一例反证）。
 - 08：`days=0` 截止日口径、`--carrying-rate-pct` 无上限、`--currency` 不校验、示例文档数字不一致。
@@ -111,15 +111,15 @@
 ## 有意差异（intended diffs）
 
 > 本清单是用户明确批准的、允许偏离旧实现的行为集合。**清单之外**的任何 stdout/stderr/退出码/JSON 差异一律视为回归。
-> 本轮（骨架 + 02 + 03）只实施 #8；#1–#7、#9–#11 仅登记，待实现到对应模块时落地。
+> 本轮（骨架 + 02 + 03）已实施 #8；第二批（01 + 05）已实施 #1–#5；#6–#7、#9–#11 仅登记，待实现到对应模块时落地。
 
 | # | 模块 | 旧行为 | 新行为 | 依据 | 影响面 | 本轮状态 |
 |---|---|---|---|---|---|---|
-| 1 | 01 | `sys.exit("字符串")` → 退出码 1；错误信息打到 stderr | 统一为退出码 2（与 02–08 一致），错误信息仍走 stderr | 用户清单 §1：错误退出码统一 | 01 全部参数/输入错误用例；成功路径不变 | 待实施 |
-| 2 | 05 | 缺文件/不可读 → 退出码 1 | 退出码 2 | 用户清单 §2；05 SKILL.md 声明 2 | 05 文件缺失分支；成功路径不变 | 待实施 |
-| 3 | 05 | 损坏图 / 0 尺寸 / 不可解码 → 抛 traceback | 返回明确状态码 + exit 2，不抛 traceback | 用户清单 §3 | 05 图片/视频异常路径 | 待实施 |
-| 4 | 01 | 单行脏数据（非数字等）中途异常退出 | 报具体行号与列名，exit 2，不静默产出错误数值 | 用户清单 §4 | 01 单行校验；成功行数值不变 | 待实施 |
-| 5 | 01 | NaN/Inf 进入计算并静默产出 | 显式校验并报错，不进入计算 | 用户清单 §5 | 01 数值校验 | 待实施 |
+| 1 | 01 | `sys.exit("字符串")` → 退出码 1；错误信息打到 stderr | 统一为退出码 2（与 02–08 一致），错误信息仍走 stderr | 用户清单 §1：错误退出码统一 | 01 全部参数/输入错误用例；成功路径不变 | **已实施**：`Agents/01_Selection_Agent/scripts/normalize_export.py`（`fail()` → stderr + `SystemExit(2)`）、`market_metrics.py`、`opportunity_score.py`；测试 `tests/test_selection.py::NormalizeExportTests` |
+| 2 | 05 | 缺文件/不可读 → 退出码 1 | 退出码 2 | 用户清单 §2；05 SKILL.md 声明 2 | 05 文件缺失分支；成功路径不变 | **已实施**：`Agents/05_Creative_Agent/scripts/asset_check.py`（`run_image` 缺图分支 `missing_source=True`、`1 if FAIL else 0` 之外单独置 2）；测试 `tests/test_creative.py::InputErrorTests` |
+| 3 | 05 | 损坏图 / 0 尺寸 / 不可解码 → 抛 traceback | 返回明确状态码 + exit 2，不抛 traceback | 用户清单 §3 | 05 图片/视频异常路径 | **已实施**：`asset_check.py` 的 `load_rgb()`（`INPUT_ERROR`「图片无法解码…」/「图片尺寸非法（0 像素）」）与 `run_video` 宽高校验（`INPUT_ERROR`「视频尺寸非法」）；测试 `tests/test_creative.py::InputErrorTests`（0 尺寸用 `mock` 覆盖） |
+| 4 | 01 | 单行脏数据（非数字等）中途异常退出 | 报具体行号与列名，exit 2，不静默产出错误数值 | 用户清单 §4 | 01 单行校验；成功行数值不变 | **已实施**：`normalize_export.py` 的 `parse_number`（`第 N 行 price='abc' 不是数字`）；测试 `tests/test_selection.py::NormalizeExportTests::test_dirty_row_reports_line_and_column` |
+| 5 | 01 | NaN/Inf 进入计算并静默产出 | 显式校验并报错，不进入计算 | 用户清单 §5 | 01 数值校验 | **已实施**：`normalize_export.py` 的 `parse_number`（`math.isfinite` → `第 N 行 price='inf' 不是有限数值（NaN/Inf）`）；测试 `tests/test_selection.py::NormalizeExportTests::test_nan_rejected`/`test_inf_rejected` |
 | 6 | 04 | GBK 等解码失败 → 原始 traceback | 明确错误信息 + exit 2 | 用户清单 §6 | 04 listing_lint 读取路径 | 待实施 |
 | 7 | 04 | 未校验 A+ 模块顺序，缺模块/乱序仍可通过 | 按文档承诺的顺序校验；缺必需模块或顺序错误判 FAIL | 用户清单 §7 | 04 A+ 校验结果（原先可通过的组合可能转为 FAIL）；其余校验不变 | 待实施 |
 | 8 | 02 | 未显式传 `--customs-fee-per-unit` 时，note 为「未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算」，JSON 无占位标记 | note 前面加 `[WARN] `；`inputs` 新增 `customs_fee_placeholder: true/false`（显式传入时为 false） | 用户清单 §8：占位值须显式告警并可机读识别 | calc 的 `notes[]` 与 `inputs`；matrix 的 `rows[].notes[]` 与 `rows[].inputs`；其余字段与数值不变 | **已实施** |

@@ -242,34 +242,42 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 `rows` 排序：`score` 降序 → `monthly_sales` 降序 → `asin` 升序。
 人类可读结构：`# 美国站选品机会评分`；`## 0. 权重与口径`（目标价、工厂成本、referral、FBA、净利率、verdict 阈值、缺列提示）；`## 1. 逐 ASIN 评分`（12 列：ASIN/标题/价格/月销/评论/评分/需求/竞争/利润/合规/供给/结论，标题超 34 字符截前 31+`...`）；`## 2. 汇总`（结论分布、建议切入价格带、Top3、三条否决理由有序列表）；`## 3. 评分口径`（五维文字说明 + 脚注）。
 
+> **表格列语义（已探测，probe 2026-10-30）**：数据行的「评分」列实际输出的是**五维总分**（`**80.5**` 加粗），原始 `rating` 不入表；表头仍保留 12 列、数据行也是 12 个值，因此列名与内容存在一处错位。新实现按此逐字复刻，不做「修正」。
+
+
 ### 4.4 失败契约与退出码（现状）
 
 三个脚本都**没有**实现统一的 `--json` 错误 JSON；`--json` 只影响成功路径。失败现状：
 
 | 脚本 | 错误信息去向 | 格式 | 退出码 |
 |---|---|---|---|
-| `normalize_export.py` | **stderr**（`sys.exit("字符串")` 的隐式行为） | 纯文本 `[INPUT_MISSING] ...`，无 JSON | **1** |
+| `normalize_export.py` | **stderr**（`sys.exit("字符串")` 的隐式行为） | 纯文本 `[INPUT_MISSING] ...`，无 JSON | ~~1~~ → **2**（旧实现 1；本批 #1 已实施，见 `99_gap_and_decisions.md`） |
 | `market_metrics.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
 | `opportunity_score.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
 | `market_metrics.py` 未捕获异常（如除零） | stderr | Python traceback | **1** |
+
+> 本批有意差异（已实施）：#1 normalize 输入错误 1→2；#4 行级脏数据必须报「第 N 行 + 列名」并 exit 2；#5 NaN/Inf 显式校验、不进入计算。消息文案与去向保持不变，只改退出码与校验严格度。
+
 
 典型输入错误场景与退出码：
 
 | 场景 | 脚本 | 退出码 | 观察 |
 |---|---|---|---|
-| 输入文件不存在 | normalize | 1 | stderr `[INPUT_MISSING] 找不到文件：...` |
+| 输入文件不存在 | normalize | **2** | stderr `[INPUT_MISSING] 找不到文件：...` |
 | 输入文件不存在 | market / opportunity | 2 | stdout 提示 + 用法建议 |
-| 文件为空/无表头 | normalize | 1 | stderr `[INPUT_MISSING] CSV 没有表头` |
-| 表头存在但无数据 | normalize | 1 | stderr `CSV 没有数据行` |
+| 文件为空/无表头 | normalize | **2** | stderr `[INPUT_MISSING] CSV 没有表头` |
+| 表头存在但无数据 | normalize | **2** | stderr `CSV 没有数据行` |
 | 表头存在但无数据 | opportunity | 2 | stdout `CSV 没有数据行。` |
-| 缺必需列 | normalize | 1 | stderr 列出缺列与现有表头 |
+| 缺必需列 | normalize | **2** | stderr 列出缺列与现有表头 |
 | 缺必需列 | opportunity | 2 | stdout 列出缺列 + 可选列说明 |
+| 单行脏数据 | normalize | **2** | stderr `第 N 行 <列名>='原值' 不是数字`（#4） |
+| NaN/Inf 数值 | normalize | **2** | stderr `第 N 行缺少 <列名>`（NaN 视作缺值）/ `... 不是有限数值（NaN/Inf）`（#5） |
 | 缺必填字段/非数字 | market | 2 | stdout 聚合全部行错误后退出 |
 | `--bins`/`--top` <1、`--config-fields` 未知、缺 attributes | market | 2 | stdout |
 | 缺三个运行期参数 | opportunity | 2 | stdout 一次列全 |
 | `--target-price ≤0` / `--factory-cost-usd <0` | opportunity | 2 | stdout |
 | JSON 解析失败、items 缺失/为空 | market | 2 | stdout |
-| 全样本总月销量=0 且所有价格相同 | market | 1 | `ZeroDivisionError` traceback（见 §6） |
+| 全样本总月销量=0 且所有价格相同 | market | 1 | `ZeroDivisionError` traceback（见 §6，本批刻意未改） |
 
 ### 4.5 输出路由与编码
 
@@ -347,10 +355,10 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 
 | # | 现象 | 触发条件 | 现状行为（含实测退出码/输出） | 新实现建议 |
 |---|---|---|---|---|
-| 1 | 字符串异常导致退出码 1 | `normalize_export.py` 任意输入错误 | `sys.exit("[INPUT_MISSING] ...")`：消息写 **stderr**、退出码 **1**；`--json` 不产生 JSON | 保留消息语义，改为统一 `{status,missing,message}` + 退出码 2 |
-| 2 | 缺文件/空 CSV/缺列/坏数字均退出 1 | normalize | 实测四种场景均 EXIT=1；stdout 为空 | 统一为输入错误 2 |
-| 3 | 错误输出走 stdout | market / opportunity | `[INPUT_MISSING]` 打到 stdout；无 JSON 错误对象 | 改 stderr + 统一错误 JSON |
-| 4 | 全样本 0 销量 + 全部同价 → 崩溃 | `market_metrics.py`，`max(price)==min(price)` 且 `Σmonthly_sales==0` | `ZeroDivisionError` traceback（price_bands 同价分支无保护），EXIT=**1** | 补 0 分母保护，输出 0.0 份额 |
+| 1 | 字符串异常导致退出码 1 | `normalize_export.py` 任意输入错误 | 旧实现 `sys.exit("[INPUT_MISSING] ...")`：消息写 **stderr**、退出码 **1**；`--json` 不产生 JSON。本批已改为显式 `SystemExit(2)`，文案不变（#1） | 已实施：见 #1 |
+| 2 | 缺文件/空 CSV/缺列/坏数字均退出 1 | normalize | 旧实测四种场景均 EXIT=1、stdout 为空；新实现同类场景 EXIT=2，stderr 文案逐字保持 | 已实施：见 #1 |
+| 3 | 错误输出走 stdout | market / opportunity | `[INPUT_MISSING]` 打到 stdout；无 JSON 错误对象 | 保持旧样（本批不改） |
+| 4 | 全样本 0 销量 + 全部同价 → 崩溃 | `market_metrics.py`，`max(price)==min(price)` 且 `Σmonthly_sales==0` | `ZeroDivisionError` traceback（price_bands 同价分支无保护），EXIT=**1** | 本批刻意保真未加保护，属规格缺口（见 §8） |
 | 5 | 0 销量 + 不同价 | 同上但价格不同 | EXIT=0，所有份额 0.0，HHI 0.0，CR3 0.0 | 保留 |
 | 6 | `--json` 覆盖 `--format` | `--format both --json` | 只输出 JSON，Markdown 被丢弃 | 保留（文档写明优先级） |
 | 7 | 错误一次性聚合 | market 字段校验、opportunity 行解析 | 汇总所有行错误后一次退出；不是首错即停 | 保留，便于修数据 |
@@ -362,7 +370,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 13 | 重复 ASIN 处理两套口径 | normalize 去重；market 不去重 | normalize 丢弃后续重复行并告警；market 同一 ASIN 重复计入 | 统一「入口去重」或文档说明 |
 | 14 | 表头别名大小写不敏感 | normalize | `ASIN`/`asin` 均可；未知别名不报错，只是缺列 | 保留 |
 | 15 | 整数字段截断 | normalize / opportunity | `int(float())` 向零截断；`reviews=200.9 → 200` | 保留或改为显式取整策略 |
-| 16 | 空行处理不同 | opportunity 跳过全空行；normalize 未跳过全空行 | normalize 的空行会因缺数字/asin 触发退出 1；**未单独实测** | 统一跳过全空行 |
+| 16 | 空行处理不同 | opportunity 跳过全空行；normalize 未跳过全空行 | **已探测（probe，2026-10-30）**：真正的空行（`csv.reader` 返回 `[]`）旧实现**跳过**；由 11 个空字段组成的行（`,,,,,,,,,,`）不跳过，报 `第 2 行 asin 为空`。新实现按此复刻：`if not row: continue` | 保留（已与旧实现对拍） |
 | 17 | `market_metrics.py` 输入支持带 `$`/`,` 数字字符串 | JSON 中 `price:"$19.99"` | 正常解析（代码明确）；输出为 float | 保留 |
 | 18 | `attributes` 交叉表按全样本分母 | 仅部分行有属性 | 属性行销量份额分母仍为全样本 S，份额合计可 <100% | 文档写明，避免误读 |
 
@@ -372,11 +380,11 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 |---|---|---|---|
 | 成功（含 `--json`） | 0 | 0 | 0 |
 | `--help` | 0 | 0 | 0 |
-| 文件不存在 | 1 | 2 | 2 |
-| 空文件 / 无表头 | 1 | 2（非法 JSON/空文件） | 2（无表头） |
-| 有表头/顶层但无数据行 | 1 | 2（`items` 为空） | 2 |
-| 缺必需列/字段 | 1 | 2 | 2 |
-| 行级非数字 | 1（首错即停） | 2（聚合） | 2（聚合） |
+| 文件不存在 | 2 | 2 | 2 |
+| 空文件 / 无表头 | 2 | 2（非法 JSON/空文件） | 2（无表头） |
+| 有表头/顶层但无数据行 | 2 | 2（`items` 为空） | 2 |
+| 缺必需列/字段 | 2 | 2 | 2 |
+| 行级非数字 / NaN / Inf | 2（首错即停） | 2（聚合） | 2（聚合） |
 | argparse 参数非法 | 2 | 2 | 2 |
 | 业务参数越界（bins/top/target/cost） | — | 2 | 2 |
 | 运行期未捕获异常 | 1（如写文件失败，未实测） | 1（除零） | 未见已知路径 |
@@ -480,21 +488,39 @@ B0TEST0001,29.99,1000,260,3.9,TestSeller
 命令：`python Agents/01_Selection_Agent/scripts/opportunity_score.py --file <上述文件> --factory-cost-usd 5.32 --target-price 29.99 --json` → EXIT=0，实测 `score=73.9`、`verdict=Watch`、`verdict_counts={Go:0,Watch:1,No-Go:0}`、`entry_price_band={low:28.49,high:31.49,median:29.99,basis:"Watch 候选价格 P25–P75"}`。
 这与 28 行样本的差异正说明：竞争维度依赖**全表卖家集中度**，单行样本会得到 0 分；用单行数据对拍时必须写死该结论，不能拿 80.5 做期望。
 
-最小 normalize CSV（11 列齐全）：任意一行即可复现 `item_count=1`、无 warning；若把 `price` 改成 `abc` 应 EXIT=1 且 stderr 指向第 2 行。
+最小 normalize CSV（11 列齐全）：任意一行即可复现 `item_count=1`、无 warning；若把 `price` 改成 `abc` 应 EXIT=2 且 stderr 指向第 2 行（#4）。
 
 ## 8. 未完整刻画/待确认
 
 1. **verdict 边界精度**：总分先 `round(,1)` 输出，但 verdict 用未取整值；59.95–60.0、74.95–75.0 的实际归属未实测，规格需明确。
-2. **NaN / Infinity**：清洗后 `float("nan")` / `float("inf")` 会被接受；其后续排序、clamp、JSON 序列化的行为未实测（`json.dumps` 默认会输出 `NaN`/`Infinity` 非法 JSON）。
-3. **重复表头**：同一 CSV 出现两列同名时，`next(...)` 取第一个；未实测 csv 模块的 `None` 键/多余列处理。
-4. **normalize 全空行**：代码未跳过全空行，实际会如何报错（asin 为空 vs 数字缺值）未单独实测。
-5. **`attributes` 字符串中的空白与重复值**：代码对空值过滤、按 `set` 去重；全角逗号、换行等未覆盖。
+2. **NaN / Infinity**：洗清后 `float("nan")` / `float("inf")` 在旧实现会被接受（`Infinity` 会写进 JSON，非法 JSON）。**本批已实施（#5）**：`math.isfinite` 显式校验，NaN 走缺值分支、Inf 报「不是有限数值（NaN/Inf）」，两者都 exit 2。`opportunity_score.py` 的同类校验也已生效（`compliance_risk` / `supply_feasibility` 非有限值报错）。
+3. **重复表头**：同一 CSV 出现两列同名时取第一个；未实测 csv 模块的 `None` 键/多余列处理。
+4. **normalize 全空行**：已探测（probe，2026-10-30）。真正的空行（`[]`）被跳过；11 个空字段的行报 `第 2 行 asin 为空`。新实现已复刻并纳入对拍用例。
+5. **`attributes` 字符串中的空白与重复值**：已探测：`--attributes "a,a , "` → `["a","a"]`（去空、不去重）。全角逗号、换行等未覆盖。
 6. **属性交叉表 `avg_price`**：按商品简单平均而非销量加权，是否为新实现期望口径需产品确认。
 7. **市场报告中的 `trough_threshold` 负值/极大值**：无校验，行为按公式外推，未实测。
 8. **opportunity 对 `rating > 5` 或负值**：clamp 后可能得 0 分或 100 分，业务上是否允许未定义。
 9. **货币**：三个脚本都写死 USD；是否需支持其它币种未在代码中出现。
 10. **stdout UTF-8 重设失败**（非 Windows/受限终端）时的降级行为未实测。
 11. **写文件失败**：`--output` 指向不存在目录或无写权限时，代码未做兜底；是否为 traceback/退出 1 未实测。
-12. **多扩展名输入文件名**：`a.tar.csv` 经 `with_suffix` 得到 `a.tar.normalized.json`；只验证了单扩展名。
-13. **非 UTF-8 编码（如 GBK）**：以 `utf-8-sig` 打开会抛 `UnicodeDecodeError`；退出码与提示未实测，规格未定义编码回退。
+12. **多扩展名输入文件名**：已探测：`myfile.tar.csv` → `myfile.tar.normalized.json`（`with_suffix` 只替换最后一个扩展名）。
+13. **非 UTF-8 编码（如 GBK）**：以 `utf-8-sig` 打开会抛 `UnicodeDecodeError`；新实现捕获后报 `[INPUT_MISSING] 无法读取文件：...`、exit 2，但编码探测/回退仍未实现。
 14. **标题截断的字符口径**：按 Python 字符数（Unicode code point）截断，非显示宽度；中文与 emoji 的视觉宽度未处理。
+
+### 8.1 探测记录（probe，2026-10-30）
+
+| 行为点 | 探测输入 | 旧实现输出/退出码 | 新实现 |
+|---|---|---|---|
+| 空 CSV | 0 字节文件 | stderr `[INPUT_MISSING] CSV 没有表头`，exit 1 | 同文案，exit 2（#1） |
+| 仅表头 | 表头一行 | stderr `CSV 没有数据行`，exit 1 | 同文案，exit 2（#1） |
+| 缺列 | `asin,title,price` | stderr `CSV 缺少列：['brand', ...]；现有表头：[...]`，exit 1 | 同文案，exit 2（#1） |
+| 单行脏数据 | `price='abc'` | stderr `第 2 行 price='abc' 不是数字`，exit 1 | 同文案，exit 2（#4） |
+| NaN | `price=nan` | stderr `第 2 行缺少 price；不补数，请回导出表核对`，exit 1 | 同文案，exit 2（#1/#5） |
+| Inf | `price=inf` | 照收，写出 `Infinity` 非法 JSON，exit 0 | 报 `第 2 行 price='inf' 不是有限数值（NaN/Inf）`，exit 2（#5） |
+| 负价 | `price=-29.99` | 照收并写出，exit 0 | 同（不做业务拦截） |
+| BOM + CRLF | UTF-8 BOM + `\r\n` | 正常解析，exit 0 | 同 |
+| 空行 | 真空白行 | 跳过，exit 0 | 同（`if not row: continue`） |
+| 默认输出名 | `myfile.tar.csv` | `myfile.tar.normalized.json` | 同 |
+| market 字段不全 | 缺 `fulfillment` | stdout `以下商品字段不完整，已停止计算（不猜测）：\n  - B0X 缺少/非法字段：fulfillment`，exit 2 | 同 |
+| market 同价 + 0 销量 | 单档价格、Σ销量=0 | `ZeroDivisionError` traceback，exit 1 | 刻意保留（清单外不得改） |
+| opportunity 基准 | 28 行示例 | Go 10 / Watch 15 / No-Go 3；Top1 `B0GREENTECH 80.5`；价带 23.24–27.74（中位 25.49） | 同（JSON 与 Markdown 逐字一致） |
