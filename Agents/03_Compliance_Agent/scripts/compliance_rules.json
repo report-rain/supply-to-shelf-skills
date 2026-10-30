@@ -1,0 +1,1596 @@
+{
+  "_meta": {
+    "version": "2.1.0",
+    "updated": "2026-10-30",
+    "market": "美国（Amazon US / TikTok Shop US）",
+    "origin": "中国大陆货源",
+    "disclaimer": "编写时公开口径：本表依据公开法规与平台政策整理，仅用于内部初筛；具体适用性、豁免条款与最新修订由合规服务商 / 律师复核，不构成法律意见，也不构成任何形式的合规保证。",
+    "sources": [
+      "FDA 21 CFR 174-178（Indirect Food Additives）",
+      "California Health & Safety Code §25249.5 / 27 CCR §25600（Prop 65）",
+      "CPSIA 15 U.S.C. 2063 / 16 CFR 1110（CPC）",
+      "16 CFR 1250（强制性引用 ASTM F963）",
+      "16 CFR 14（Tracking Label）",
+      "16 CFR 1303 / 1307（铅、邻苯）",
+      "16 CFR 1501（小零件）",
+      "47 CFR Part 15 Subpart B / Subpart C（FCC）",
+      "21 CFR 1040.10 / 1040.11 / 1002（FDA CDRH 激光）",
+      "UN Manual of Tests and Criteria, Part III, Sub-section 38.3（UN38.3）",
+      "IATA DGR 965-967 / 49 CFR 173.185（锂电池运输）",
+      "CPSC 16 CFR 1262（磁铁安全标准）",
+      "FD&C Act §506（MoCRA）",
+      "16 CFR 1610 / 16 CFR 303（纺织）",
+      "California TB 117-2013 / 16 CFR 1640（软垫家具）",
+      "40 CFR Part 770（TSCA Title VI）",
+      "49 CFR 173.306（气雾剂运输）",
+      "California CARB Consumer Products Regulation（17 CCR 94507 et seq.）",
+      "Amazon US Seller Central 类目与商品政策",
+      "TikTok Shop US 商家规则与禁售限售清单",
+      "16 CFR Part 1130 / 1218 / 1219 / 1220（婴儿耐用品与睡眠产品）",
+      "49 CFR 571.213（FMVSS 213）",
+      "21 CFR Part 1 Subpart H / Subpart L、21 CFR Part 117、21 CFR Part 101（食品）",
+      "California Health & Safety Code §25214.10（金属首饰）",
+      "16 CFR Part 23（FTC Jewelry Guides）、16 CFR Part 305（EnergyGuide）",
+      "10 CFR Part 430（DOE 能效）、40 CFR Part 84（AIM Act）",
+      "ANSI/ASME B107 系列（手工具）"
+    ],
+    "status_rules": {
+      "BLOCKED": "任一 blocking=true 的义务状态不是 have（missing 或 unknown），或商标初筛结论为冲突",
+      "CONDITIONAL": "无阻断级缺失，但仍有 missing / unknown 的可补办项",
+      "PASS": "全部非提示类必需文件状态均为 have"
+    },
+    "have_rule": "--have 只接受真实已出具的报告名称；含 pending / 待出 / 申请中 / 办理中 / 审核中的条目不计数",
+    "advisory_rule": "advisory=true 的条目是平台审核类事项，无法用“已有报告”证明，只做提示，不参与 PASS / CONDITIONAL 判定"
+  },
+  "doc_library": {
+    "un38_3": {
+      "name": "UN38.3 锂电池运输测试报告（Test Summary）",
+      "authority": "UN Manual of Tests and Criteria, Part III, Sub-section 38.3",
+      "trigger": "含锂电池产品订舱与发货（海运、空运）",
+      "blocking": false,
+      "aliases": [
+        "un38.3",
+        "un383",
+        "un 38.3",
+        "test summary",
+        "锂电池运输测试",
+        "38.3"
+      ],
+      "sources": [
+        "UN Manual of Tests and Criteria, Part III, Sub-section 38.3"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "sds_lithium": {
+      "name": "MSDS / SDS 安全数据表（锂电池类）",
+      "authority": "GHS / 49 CFR 172.702（承运人要求）",
+      "trigger": "订舱、报关与承运人资料要求",
+      "blocking": false,
+      "aliases": [
+        "msds",
+        "sds",
+        "安全数据表",
+        "safety data sheet"
+      ],
+      "sources": [
+        "GHS / 49 CFR 172.702（承运人要求）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "battery_transport_label": {
+      "name": "锂电池运输包装与标签（UN3481、Class 9、荷电状态 ≤30%）",
+      "authority": "IATA DGR 965-967 / IMDG / 49 CFR 173.185",
+      "trigger": "空运或海运装柜时的包装与标签",
+      "blocking": false,
+      "aliases": [
+        "un3481",
+        "class 9",
+        "电池标签",
+        "锂电标签",
+        "电池运输"
+      ],
+      "sources": [
+        "IATA DGR 965-967 / IMDG / 49 CFR 173.185"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "battery_safety_test": {
+      "name": "电池组安全测试报告（UL 2054 / IEC 62133-2）",
+      "authority": "UL 2054 / IEC 62133-2（平台与零售渠道常要求）",
+      "trigger": "Amazon 电池相关类目审核、部分线下零售准入",
+      "blocking": false,
+      "aliases": [
+        "ul 2054",
+        "ul2054",
+        "iec 62133",
+        "iec62133",
+        "电池测试"
+      ],
+      "sources": [
+        "UL 2054 / IEC 62133-2（平台与零售渠道常要求）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "alkaline_sds": {
+      "name": "碱性电池 SDS / 成分声明",
+      "authority": "GHS（非强制，承运人与平台常索要）",
+      "trigger": "订舱与平台类目审核",
+      "blocking": false,
+      "aliases": [
+        "碱性电池 sds",
+        "alkaline sds",
+        "碱性电池成分"
+      ],
+      "sources": [
+        "GHS（非强制，承运人与平台常索要）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "mercury_free": {
+      "name": "无汞 / 低汞合规声明",
+      "authority": "42 U.S.C. 14301（含汞电池管理法）及各州法",
+      "trigger": "在美国销售碱性电池或随设备附带电池",
+      "blocking": false,
+      "aliases": [
+        "mercury",
+        "无汞",
+        "含汞",
+        "mercury-free"
+      ],
+      "sources": [
+        "42 U.S.C. 14301（含汞电池管理法）及各州法"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fda_food_contact": {
+      "name": "FDA 食品接触材料合规文件（21 CFR 174-178 符合性声明 / FCN）",
+      "authority": "FDA 21 CFR 174-178",
+      "trigger": "任何接触食品的部件（杯体、刀头、密封圈、内胆）",
+      "blocking": false,
+      "aliases": [
+        "fda food contact",
+        "food contact",
+        "食品接触",
+        "21 cfr 177",
+        "fcn",
+        "food contact report"
+      ],
+      "sources": [
+        "FDA 21 CFR 174-178"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "food_contact_migration": {
+      "name": "食品接触迁移测试（总迁移 / 特定迁移，按材料）",
+      "authority": "FDA 21 CFR 175-178（涂层、纸、聚合物、硅橡胶等分章节）",
+      "trigger": "塑料、硅胶、涂层、金属内胆等食品接触部件",
+      "blocking": false,
+      "aliases": [
+        "迁移测试",
+        "migration",
+        "总迁移",
+        "特定迁移"
+      ],
+      "sources": [
+        "FDA 21 CFR 175-178（涂层、纸、聚合物、硅橡胶等分章节）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "prop65": {
+      "name": "加州 Prop 65 警告标签或暴露评估",
+      "authority": "California Health & Safety Code §25249.5 / 27 CCR §25600",
+      "trigger": "面向加州消费者的任何产品（按材料清单评估）",
+      "blocking": false,
+      "aliases": [
+        "prop 65",
+        "prop65",
+        "加州65",
+        "proposition 65",
+        "65 警告"
+      ],
+      "sources": [
+        "California Health & Safety Code §25249.5 / 27 CCR §25600"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "cpc": {
+      "name": "儿童产品证书 CPC（Children's Product Certificate）",
+      "authority": "CPSIA 15 U.S.C. 2063 / 16 CFR 1110",
+      "trigger": "为 12 岁及以下儿童设计或使用的产品",
+      "blocking": false,
+      "aliases": [
+        "cpc",
+        "children's product certificate",
+        "儿童产品证书"
+      ],
+      "sources": [
+        "CPSIA 15 U.S.C. 2063 / 16 CFR 1110"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "astm_f963": {
+      "name": "ASTM F963 玩具安全测试报告",
+      "authority": "16 CFR 1250（强制性引用 ASTM F963）",
+      "trigger": "玩具类目产品",
+      "blocking": false,
+      "aliases": [
+        "astm f963",
+        "f963",
+        "玩具测试",
+        "toy safety"
+      ],
+      "sources": [
+        "16 CFR 1250（强制性引用 ASTM F963）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "tracking_label": {
+      "name": "永久追踪标签（Tracking Label）",
+      "authority": "CPSIA 15 U.S.C. 2063(a)(5) / 16 CFR 14",
+      "trigger": "儿童产品本体与包装",
+      "blocking": false,
+      "aliases": [
+        "tracking label",
+        "追踪标签",
+        "永久标签"
+      ],
+      "sources": [
+        "CPSIA 15 U.S.C. 2063(a)(5) / 16 CFR 14"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "phthalates": {
+      "name": "邻苯二甲酸盐（8 种）测试",
+      "authority": "16 CFR 1307",
+      "trigger": "含增塑剂或可能被儿童放入口中的部件",
+      "blocking": false,
+      "aliases": [
+        "phthalate",
+        "邻苯二甲酸",
+        "邻苯"
+      ],
+      "sources": [
+        "16 CFR 1307"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "lead": {
+      "name": "铅含量测试（涂层与基材）",
+      "authority": "16 CFR 1303 / CPSIA",
+      "trigger": "儿童产品所有可接触部件",
+      "blocking": false,
+      "aliases": [
+        "lead",
+        "铅含量",
+        "铅测试"
+      ],
+      "sources": [
+        "16 CFR 1303 / CPSIA"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "small_parts": {
+      "name": "小零件测试（3 岁以下适用）",
+      "authority": "16 CFR 1501",
+      "trigger": "3 岁以下儿童使用的产品",
+      "blocking": false,
+      "aliases": [
+        "small parts",
+        "小零件"
+      ],
+      "sources": [
+        "16 CFR 1501"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "mocra": {
+      "name": "MoCRA 化妆品设施注册与产品列名",
+      "authority": "FD&C Act §506（MoCRA, 2022）",
+      "trigger": "按化妆品（清洁、护肤、改善外观）用途销售的产品",
+      "blocking": false,
+      "aliases": [
+        "mocra",
+        "化妆品注册",
+        "facility registration",
+        "产品列名"
+      ],
+      "sources": [
+        "FD&C Act §506（MoCRA, 2022）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "mocra_gmp": {
+      "name": "MoCRA 化妆品 GMP 合规记录",
+      "authority": "FD&C Act §506(c) / (f)",
+      "trigger": "化妆品类目生产与加工",
+      "blocking": false,
+      "aliases": [
+        "gmp",
+        "化妆品gmp",
+        "cosmetic gmp"
+      ],
+      "sources": [
+        "FD&C Act §506(c) / (f)"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "cosmetic_label": {
+      "name": "FDA 化妆品标签合规（成分表、净含量、责任人）",
+      "authority": "21 CFR 701 / FD&C Act §602",
+      "trigger": "化妆品类目上架",
+      "blocking": false,
+      "aliases": [
+        "21 cfr 701",
+        "化妆品标签",
+        "inci",
+        "成分表"
+      ],
+      "sources": [
+        "21 CFR 701 / FD&C Act §602"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fcc_part15b": {
+      "name": "FCC Part 15 Subpart B 无意辐射体合规（SDoC）",
+      "authority": "47 CFR Part 15 Subpart B",
+      "trigger": "含数字电路或开关电源的电子产品",
+      "blocking": false,
+      "aliases": [
+        "fcc",
+        "part 15b",
+        "sdoc",
+        "无意辐射",
+        "fcc part 15"
+      ],
+      "sources": [
+        "47 CFR Part 15 Subpart B"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fcc_id": {
+      "name": "FCC ID 认证（有意辐射体：蓝牙 / Wi-Fi / 2.4G）",
+      "authority": "47 CFR Part 15 Subpart C",
+      "trigger": "含无线发射功能的产品",
+      "blocking": false,
+      "aliases": [
+        "fcc id",
+        "fccid",
+        "蓝牙认证",
+        "wifi 认证",
+        "2.4g"
+      ],
+      "sources": [
+        "47 CFR Part 15 Subpart C"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "rf_exposure": {
+      "name": "RF 暴露评估（SAR / MPE）",
+      "authority": "47 CFR 2.1091 / 2.1093",
+      "trigger": "贴身使用或发射功率较高的无线产品",
+      "blocking": false,
+      "aliases": [
+        "sar",
+        "rf exposure",
+        "射频暴露",
+        "mpe"
+      ],
+      "sources": [
+        "47 CFR 2.1091 / 2.1093"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "cdrh": {
+      "name": "FDA CDRH 激光产品报告与 Accession Number",
+      "authority": "21 CFR 1040.10 / 1040.11 / 1002",
+      "trigger": "任何激光产品的进口与销售",
+      "blocking": false,
+      "aliases": [
+        "cdrh",
+        "accession",
+        "21 cfr 1040",
+        "激光报告",
+        "laser report"
+      ],
+      "sources": [
+        "21 CFR 1040.10 / 1040.11 / 1002"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "laser_label": {
+      "name": "激光分类与警示标签（Class 1 / 2 / 3R / 3B）",
+      "authority": "21 CFR 1040.10(g)",
+      "trigger": "激光产品本体与包装",
+      "blocking": false,
+      "aliases": [
+        "laser label",
+        "激光标签",
+        "class 1",
+        "激光警示"
+      ],
+      "sources": [
+        "21 CFR 1040.10(g)"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ul_nrtl": {
+      "name": "UL / ETL 认证（NRTL 列名）",
+      "authority": "按产品适用的 UL 标准（如 UL 60335-1 家电通用、UL 982 食品加工机）",
+      "trigger": "市电供电或随附电源适配器",
+      "blocking": false,
+      "aliases": [
+        "ul 认证",
+        "ul certificate",
+        "etl",
+        "nrtl",
+        "ul 60335"
+      ],
+      "sources": [
+        "按产品适用的 UL 标准（如 UL 60335-1 家电通用、UL 982 食品加工机）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "plug": {
+      "name": "插头与电源线合规（NEMA 1-15P / 5-15P，UL 817）",
+      "authority": "UL 817 / NEMA WD 6",
+      "trigger": "随附美规插头或电源线",
+      "blocking": false,
+      "aliases": [
+        "ul 817",
+        "nema",
+        "插头",
+        "电源线"
+      ],
+      "sources": [
+        "UL 817 / NEMA WD 6"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "doe_efficiency": {
+      "name": "外置电源适配器能效合规（DOE）",
+      "authority": "10 CFR 430 Subpart B, Appendix Z",
+      "trigger": "随附外置电源适配器",
+      "blocking": false,
+      "aliases": [
+        "doe",
+        "能效",
+        "10 cfr 430",
+        "level vi"
+      ],
+      "sources": [
+        "10 CFR 430 Subpart B, Appendix Z"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "magnet_1262": {
+      "name": "磁铁安全标准合规（16 CFR 1262）",
+      "authority": "CPSC 16 CFR 1262",
+      "trigger": "设计或销售给娱乐、解压、教育等用途的强磁产品",
+      "blocking": false,
+      "aliases": [
+        "16 cfr 1262",
+        "magnet",
+        "磁铁",
+        "磁力"
+      ],
+      "sources": [
+        "CPSC 16 CFR 1262"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "flux_index": {
+      "name": "磁通量指数测试（≤ 50 kG²mm² 或适用豁免）",
+      "authority": "16 CFR 1262 / ASTM F963 §4.38",
+      "trigger": "含可分离磁体的产品",
+      "blocking": false,
+      "aliases": [
+        "flux index",
+        "磁通量"
+      ],
+      "sources": [
+        "16 CFR 1262 / ASTM F963 §4.38"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "dot_aerosol": {
+      "name": "DOT 气雾剂运输合规（49 CFR 173.306 有限数量）",
+      "authority": "49 CFR 173.306 / IATA DGR 2.3",
+      "trigger": "含压缩气体或液化气体的喷雾类产品",
+      "blocking": false,
+      "aliases": [
+        "dot",
+        "49 cfr 173",
+        "orm-d",
+        "气雾剂",
+        "aerosol"
+      ],
+      "sources": [
+        "49 CFR 173.306 / IATA DGR 2.3"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "aerosol_sds": {
+      "name": "气雾剂 SDS 与成分 / 闪点声明",
+      "authority": "GHS / 49 CFR 172.702",
+      "trigger": "气雾剂订舱与平台审核",
+      "blocking": false,
+      "aliases": [
+        "气雾剂 sds",
+        "aerosol sds",
+        "闪点"
+      ],
+      "sources": [
+        "GHS / 49 CFR 172.702"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "carb_voc": {
+      "name": "加州 CARB / OTC VOC 合规",
+      "authority": "California CARB Consumer Products Regulation（17 CCR 94507 et seq.）",
+      "trigger": "喷雾类消费品在加州销售",
+      "blocking": false,
+      "aliases": [
+        "carb",
+        "voc",
+        "加州voc"
+      ],
+      "sources": [
+        "California CARB Consumer Products Regulation（17 CCR 94507 et seq.）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "fda_device_clearance": {
+      "name": "FDA 器械分类与 510(k) / 豁免确认",
+      "authority": "FD&C Act §201(h) / 21 CFR 807",
+      "trigger": "宣称治疗、诊断、预防疾病或改变身体结构功能",
+      "blocking": true,
+      "aliases": [
+        "510k",
+        "510(k)",
+        "fda 器械",
+        "device clearance"
+      ],
+      "sources": [
+        "FD&C Act §201(h) / 21 CFR 807"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ftc_health_substantiation": {
+      "name": "FTC 健康 / 功效声明实证材料",
+      "authority": "FTC Act §5 / 16 CFR 255",
+      "trigger": "健康、疗效、减重、改善睡眠类表述",
+      "blocking": true,
+      "aliases": [
+        "ftc",
+        "健康声明",
+        "substantiation",
+        "功效实证"
+      ],
+      "sources": [
+        "FTC Act §5 / 16 CFR 255"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "textile_1610": {
+      "name": "服装纺织品阻燃测试（16 CFR 1610）",
+      "authority": "CPSC 16 CFR 1610",
+      "trigger": "服装与面料类产品",
+      "blocking": false,
+      "aliases": [
+        "1610",
+        "flammability",
+        "阻燃"
+      ],
+      "sources": [
+        "CPSC 16 CFR 1610"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "textile_fiber_label": {
+      "name": "纤维成分与护理标签（16 CFR 303）",
+      "authority": "16 CFR 303 / FTC Textile Fiber Products Identification Act",
+      "trigger": "纺织类商品上架",
+      "blocking": false,
+      "aliases": [
+        "16 cfr 303",
+        "fiber",
+        "成分标签",
+        "care label"
+      ],
+      "sources": [
+        "16 CFR 303 / FTC Textile Fiber Products Identification Act"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "tb117": {
+      "name": "加州 TB 117-2013 软垫家具阻燃合规与标签",
+      "authority": "California TB 117-2013（B&P Code §19094）",
+      "trigger": "含软垫或填充的家具在加州销售",
+      "blocking": false,
+      "aliases": [
+        "tb117",
+        "tb 117",
+        "软垫",
+        "tb 117-2013"
+      ],
+      "sources": [
+        "California TB 117-2013（B&P Code §19094）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "furniture_1640": {
+      "name": "CPSC 16 CFR 1640 软垫家具阻燃标准",
+      "authority": "16 CFR 1640（联邦执行状态以 CPSC 最新公告为准）",
+      "trigger": "软垫家具",
+      "blocking": false,
+      "aliases": [
+        "16 cfr 1640",
+        "1640"
+      ],
+      "sources": [
+        "16 CFR 1640（联邦执行状态以 CPSC 最新公告为准）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "tsca_title6": {
+      "name": "TSCA Title VI 复合木制品甲醛合规",
+      "authority": "40 CFR Part 770",
+      "trigger": "含人造板、胶合板、密度板部件",
+      "blocking": false,
+      "aliases": [
+        "tsca",
+        "title vi",
+        "甲醛",
+        "formaldehyde"
+      ],
+      "sources": [
+        "40 CFR Part 770"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "cpsc_general": {
+      "name": "消费品安全合规自证（CPSA）",
+      "authority": "CPSA 15 U.S.C. 2057 / 16 CFR 1120",
+      "trigger": "所有面向美国消费者的产品",
+      "blocking": false,
+      "aliases": [
+        "cpsc",
+        "cpsa",
+        "消费品安全"
+      ],
+      "sources": [
+        "CPSA 15 U.S.C. 2057 / 16 CFR 1120"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ca_ab1200": {
+      "name": "加州 AB 1200 炊具 PFAS 披露（仅炊具）",
+      "authority": "California Health & Safety Code §109000 et seq.（AB 1200）",
+      "trigger": "炊具类产品在加州销售",
+      "blocking": false,
+      "aliases": [
+        "ab 1200",
+        "pfas",
+        "炊具"
+      ],
+      "sources": [
+        "California Health & Safety Code §109000 et seq.（AB 1200）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "pet_material_safety": {
+      "name": "宠物用品材料安全与可啃咬部件评估",
+      "authority": "CPSA 15 U.S.C. 2057 / 各州法规",
+      "trigger": "宠物用品（非宠物食品）",
+      "blocking": false,
+      "aliases": [
+        "宠物用品安全",
+        "pet safety",
+        "pet material"
+      ],
+      "sources": [
+        "CPSA 15 U.S.C. 2057 / 各州法规"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "helmet_1203": {
+      "name": "自行车头盔 CPSC 16 CFR 1203 测试",
+      "authority": "16 CFR 1203",
+      "trigger": "头盔类产品",
+      "blocking": false,
+      "aliases": [
+        "1203",
+        "头盔",
+        "helmet"
+      ],
+      "sources": [
+        "16 CFR 1203"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "astm_sport_standard": {
+      "name": "运动器材对应 ASTM 项目标准测试",
+      "authority": "ASTM F 系列（按具体项目确定）",
+      "trigger": "器械、护具类运动产品",
+      "blocking": false,
+      "aliases": [
+        "astm",
+        "运动器材标准"
+      ],
+      "sources": [
+        "ASTM F 系列（按具体项目确定）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "amazon_category_approval": {
+      "name": "Amazon 类目 / 品牌资质审核（Gated 类目）",
+      "authority": "Amazon US Seller Central 类目与商品政策",
+      "trigger": "玩具、个护、食品接触、医疗器械等受限类目",
+      "blocking": false,
+      "advisory": true,
+      "default_status": "unknown",
+      "aliases": [
+        "amazon 类目审核",
+        "category approval",
+        "gated"
+      ],
+      "sources": [
+        "Amazon US Seller Central 类目与商品政策"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "amazon_label_review": {
+      "name": "Amazon 商品标签与包装合规审核（警告语、责任方信息）",
+      "authority": "Amazon US 商品合规政策",
+      "trigger": "上架前的标签与包装图审核",
+      "blocking": false,
+      "advisory": true,
+      "default_status": "unknown",
+      "aliases": [
+        "amazon 标签审核",
+        "label review"
+      ],
+      "sources": [
+        "Amazon US 商品合规政策"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "tiktok_category_qualification": {
+      "name": "TikTok Shop US 类目资质与商品合规审核",
+      "authority": "TikTok Shop US 商家规则 / 禁售限售清单",
+      "trigger": "TikTok Shop US 上架前",
+      "blocking": false,
+      "advisory": true,
+      "default_status": "unknown",
+      "aliases": [
+        "tiktok 类目",
+        "tiktok 资质"
+      ],
+      "sources": [
+        "TikTok Shop US 商家规则 / 禁售限售清单"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "tiktok_product_cert": {
+      "name": "TikTok Shop 资质文件上传（认证 / 检测报告）",
+      "authority": "TikTok Shop US 商家规则",
+      "trigger": "受限类目上架",
+      "blocking": false,
+      "advisory": true,
+      "default_status": "unknown",
+      "aliases": [
+        "tiktok 认证上传",
+        "tiktok 报告"
+      ],
+      "sources": [
+        "TikTok Shop US 商家规则"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "baby_gear_registration": {
+      "name": "耐用品婴儿产品注册（Registration Card / 产品注册）",
+      "authority": "16 CFR Part 1130（Durable Infant or Toddler Products）",
+      "trigger": "婴儿床、摇篮、高脚椅、推车、儿童安全座椅等耐用品婴儿产品",
+      "blocking": false,
+      "aliases": [
+        "1130",
+        "registration card",
+        "婴儿产品注册",
+        "耐用品注册"
+      ],
+      "sources": [
+        "16 CFR Part 1130（CPSC 耐用品婴儿产品注册，eCFR Title 16）",
+        "CPSA §104（15 U.S.C. 2064）产品注册与记录要求"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "infant_sleep_standards": {
+      "name": "婴儿睡眠产品安全标准（摇篮 / 婴儿床）",
+      "authority": "16 CFR Part 1218（摇篮）/ 1219（全尺寸婴儿床）/ 1220（非全尺寸婴儿床）",
+      "trigger": "摇篮、床边床、倾斜睡床、婴儿床等婴儿睡眠产品",
+      "blocking": false,
+      "aliases": [
+        "1218",
+        "1219",
+        "1220",
+        "婴儿床",
+        "摇篮",
+        "bassinet",
+        "crib"
+      ],
+      "sources": [
+        "16 CFR Part 1218（Safety Standard for Bassinets and Cradles，eCFR Title 16）",
+        "16 CFR Part 1219（Safety Standard for Full-Size Baby Cribs）",
+        "16 CFR Part 1220（Safety Standard for Non-Full-Size Baby Cribs）",
+        "CPSC 婴儿睡眠产品规则页面（Safe Sleep）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "fmvss_213": {
+      "name": "儿童汽车安全座椅 FMVSS 213",
+      "authority": "49 CFR 571.213（FMVSS No. 213 Child Restraint Systems）",
+      "trigger": "儿童约束系统 / 汽车安全座椅及增高垫",
+      "blocking": false,
+      "aliases": [
+        "fmvss 213",
+        "213",
+        "car seat",
+        "安全座椅"
+      ],
+      "sources": [
+        "49 CFR 571.213（FMVSS No. 213，eCFR Title 49）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fda_food_facility_reg": {
+      "name": "FDA 食品设施注册（Food Facility Registration）",
+      "authority": "21 CFR Part 1 Subpart H（§1.225–1.243）",
+      "trigger": "为美国市场生产、加工、包装或储存食品的设施",
+      "blocking": false,
+      "aliases": [
+        "ffr",
+        "food facility registration",
+        "食品设施注册",
+        "fda registration"
+      ],
+      "sources": [
+        "21 CFR Part 1 Subpart H（Registration of Food Facilities，eCFR Title 21）",
+        "FDA 食品设施注册系统说明（每偶数年需更新注册）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fsma_preventive_controls": {
+      "name": "FSMA 预防性控制（Preventive Controls）",
+      "authority": "21 CFR Part 117（CGMP 与基于风险的预防性控制）",
+      "trigger": "食品生产 / 加工设施（部分豁免需企业自行举证）",
+      "blocking": false,
+      "aliases": [
+        "fsma",
+        "21 cfr 117",
+        "预防性控制",
+        "hcpc"
+      ],
+      "sources": [
+        "21 CFR Part 117（Current Good Manufacturing Practice, Hazard Analysis, and Risk-Based Preventive Controls，eCFR Title 21）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fda_food_label": {
+      "name": "FDA 食品标签（营养成分与过敏原）",
+      "authority": "21 CFR Part 101；FD&C Act §403(w)（FALCPA）",
+      "trigger": "所有在美国销售的预包装食品",
+      "blocking": false,
+      "aliases": [
+        "nutrition facts",
+        "营养成分表",
+        "过敏原",
+        "falcla",
+        "food label"
+      ],
+      "sources": [
+        "21 CFR Part 101（Food Labeling，eCFR Title 21）",
+        "FD&C Act §403(w)（Food Allergen Labeling and Consumer Protection Act）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "fsvp_importer": {
+      "name": "FSVP 外国供应商验证计划（进口商责任）",
+      "authority": "21 CFR Part 1 Subpart L（Foreign Supplier Verification Programs）",
+      "trigger": "美国进口商 / 记录进口商（Importer of Record）",
+      "blocking": false,
+      "aliases": [
+        "fsvp",
+        "外国供应商验证",
+        "importer"
+      ],
+      "sources": [
+        "21 CFR Part 1 Subpart L（Foreign Supplier Verification Programs，eCFR Title 21）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ansi_hand_tool": {
+      "name": "手工具 ANSI/ASME 标准符合性",
+      "authority": "ANSI/ASME B107 系列（按工具类型选择分册）",
+      "trigger": "手动工具（钳、扳手、螺丝刀、切割工具等）",
+      "blocking": false,
+      "aliases": [
+        "ansi",
+        "b107",
+        "手工具",
+        "hand tool"
+      ],
+      "sources": [
+        "ANSI/ASME B107 系列标准目录（具体分册按工具类型确定）",
+        "需实验室按实际分册确认适用性，本表不做分册推断"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    },
+    "ca_jewelry_lead": {
+      "name": "加州金属首饰铅含量合规",
+      "authority": "California Health & Safety Code §25214.10 / §25214.10.1",
+      "trigger": "在加州销售的表层金属或电镀首饰（成人及儿童）",
+      "blocking": false,
+      "aliases": [
+        "25214.10",
+        "california jewelry",
+        "加州首饰",
+        "金属首饰"
+      ],
+      "sources": [
+        "California Health & Safety Code §25214.10 / §25214.10.1（Metal-Containing Jewelry）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ftc_jewelry_guides": {
+      "name": "FTC 珠宝首饰广告与印记指南",
+      "authority": "16 CFR Part 23（Guides for the Jewelry, Precious Metals, and Pewter Industries）",
+      "trigger": "贵金属、宝石、镀层类首饰的标注与营销宣称",
+      "blocking": false,
+      "aliases": [
+        "16 cfr 23",
+        "jewelry guides",
+        "珠宝印记",
+        "gold plated"
+      ],
+      "sources": [
+        "16 CFR Part 23（FTC Jewelry Guides，eCFR Title 16）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "ftc_energy_guide": {
+      "name": "FTC EnergyGuide 能效标签",
+      "authority": "16 CFR Part 305（Energy and Water Use Labeling）",
+      "trigger": "受 DOE 能效标准覆盖的大型家电（冰箱、洗衣机、空调等）",
+      "blocking": false,
+      "aliases": [
+        "energyguide",
+        "能效标签",
+        "16 cfr 305"
+      ],
+      "sources": [
+        "16 CFR Part 305（FTC Energy Labeling Rule，eCFR Title 16）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "verified"
+    },
+    "epa_refrigerant": {
+      "name": "制冷剂合规（AIM Act / SNAP）",
+      "authority": "40 CFR Part 84（Phasedown of HFCs）；EPA SNAP 规则",
+      "trigger": "含制冷剂的冰箱、冷柜、空调、除湿机等",
+      "blocking": false,
+      "aliases": [
+        "aim act",
+        "snap",
+        "制冷剂",
+        "refrigerant",
+        "hfc"
+      ],
+      "sources": [
+        "40 CFR Part 84（Phasedown of Hydrofluorocarbons, AIM Act，eCFR Title 40）",
+        "EPA SNAP 计划（制冷剂可接受性清单）"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review"
+    }
+  },
+  "attributes": {
+    "lithium_battery": {
+      "label_cn": "锂电池",
+      "docs": [
+        "un38_3",
+        "sds_lithium",
+        "battery_transport_label",
+        "battery_safety_test"
+      ],
+      "risk_notes": [
+        "电芯报告与电池组报告不可互相替代；UN38.3 需覆盖实际出货的电芯型号。",
+        "空运对荷电状态（SoC ≤30%）与包装件数量有额外限制，旺季拒收锂电常见，订舱前要拿到货代书面确认。",
+        "UN38.3 报告有效期通常 1-3 年（以出报告日为准），平台审核可能要求 12 个月内版本。"
+      ]
+    },
+    "alkaline_battery": {
+      "label_cn": "碱性电池",
+      "docs": [
+        "alkaline_sds",
+        "mercury_free"
+      ],
+      "risk_notes": [
+        "碱性电池一般不属于第 9 类危险品，但与设备同售时需确认电池是否可拆、是否需随附说明。",
+        "含汞量限制与部分州法（如加州）要求需单独核对，不要用锂电池报告替代。"
+      ]
+    },
+    "food_contact": {
+      "label_cn": "食品接触",
+      "docs": [
+        "fda_food_contact",
+        "prop65",
+        "food_contact_migration"
+      ],
+      "risk_notes": [
+        "不同材料对应不同章节（塑料 21 CFR 177.1520、硅橡胶 177.2600、涂层 175.300 等），报告必须与实物材料一一对应。",
+        "食品接触合规不等于 FDA 企业注册：美国对食品接触物质无强制企业注册，但需留存符合性文件备查，平台可能抽查。",
+        "刀头、杯体、密封圈、内胆等每个接触部件都要覆盖，缺一个部件就是缺一份文件。"
+      ]
+    },
+    "children_under_12": {
+      "label_cn": "12 岁以下儿童产品",
+      "docs": [
+        "cpc",
+        "astm_f963",
+        "tracking_label",
+        "phthalates",
+        "lead",
+        "small_parts"
+      ],
+      "risk_notes": [
+        "测试必须由 CPSC 认可的第三方实验室出具，制造商自我声明无效。",
+        "追踪标签需含制造商名称与地址、生产年月、批次信息、生产地，且必须永久附着。",
+        "儿童产品在 Amazon 属 Gated 类目，审核周期通常 2-4 周，旺季更久。",
+        "小零件测试仅在 3 岁以下适用；若产品面向 3-12 岁，可豁免但需在文件中说明年龄定位。"
+      ]
+    },
+    "skin_contact": {
+      "label_cn": "皮肤接触",
+      "docs": [
+        "prop65",
+        "mocra",
+        "cosmetic_label"
+      ],
+      "risk_notes": [
+        "只写“材料亲肤”不等于化妆品；一旦宣称清洁、护肤、改善肤质，即触发 MoCRA 与化妆品标签义务。",
+        "MoCRA 设有小企业部分豁免，但豁免不等于免注册，需逐条核对设施注册与产品列名。",
+        "非化妆品用途的皮肤接触产品（如硅胶手柄、贴合类织物），重点转为材料安全与 Prop 65 评估。"
+      ]
+    },
+    "radio_frequency": {
+      "label_cn": "无线射频",
+      "docs": [
+        "fcc_part15b",
+        "fcc_id",
+        "rf_exposure"
+      ],
+      "risk_notes": [
+        "FCC ID 必须与实际制造商或申请人绑定，借用他人 FCC ID 属违规，平台可直接下架。",
+        "SDoC 由责任方自我声明并留存测试报告，但仍需有资质实验室的数据支撑。",
+        "带 App 联动的产品，蓝牙模组若为采购件，需确认模组本身的 FCC ID 与整机组合是否被覆盖。"
+      ]
+    },
+    "laser": {
+      "label_cn": "激光",
+      "docs": [
+        "cdrh",
+        "laser_label"
+      ],
+      "risk_notes": [
+        "无 Accession Number 的产品在海关 entry 环节可能被拒，补办周期常见 4-8 周。",
+        "需先确定激光分类（Class 1/2/3R/3B），分类决定标签、防护与报告要求。",
+        "含 LED 的产品需确认是否被归为激光产品，还是仅按灯具或普通电子标准处理。"
+      ]
+    },
+    "mains_power": {
+      "label_cn": "市电供电",
+      "docs": [
+        "ul_nrtl",
+        "plug",
+        "doe_efficiency"
+      ],
+      "risk_notes": [
+        "USB 充电类产品若随附电源适配器，适配器与整机报告不可混用；适配器常为采购件，需单独认证。",
+        "NRTL 认证周期通常 4-8 周，含整改更长；证书主体应能覆盖实际生产工厂。",
+        "带加热或电机的产品，UL 标准按具体器具确定（如 UL 982、UL 1082、UL 60335-1），不要用不匹配的报告。"
+      ]
+    },
+    "magnet": {
+      "label_cn": "磁铁",
+      "docs": [
+        "magnet_1262",
+        "flux_index"
+      ],
+      "risk_notes": [
+        "16 CFR 1262 与 ASTM F963 的磁铁条款并行适用，儿童产品两项都要过。",
+        "磁通量指数测试需按可分离磁体逐个测量，套装产品按最不利件判定。"
+      ]
+    },
+    "aerosol": {
+      "label_cn": "气雾剂",
+      "docs": [
+        "dot_aerosol",
+        "aerosol_sds",
+        "carb_voc"
+      ],
+      "risk_notes": [
+        "气雾剂在 Amazon 与 TikTok Shop 多为限售或需类目审核，上架前先查最新禁售限售清单。",
+        "空运基本不接收气雾剂，海运需货代书面确认；含易燃推进剂的产品另受 49 CFR 173 限制。"
+      ]
+    },
+    "medical_claim": {
+      "label_cn": "医疗 / 功效声明",
+      "docs": [
+        "fda_device_clearance",
+        "ftc_health_substantiation"
+      ],
+      "risk_notes": [
+        "医疗声明不能靠“补文件”解决：没有 FDA 路径就必须删声明（改包装、改 Listing、改图）。",
+        "Amazon 与 TikTok Shop 对健康类声明均有人工审核，违规可致 Listing 下架甚至账号受限。",
+        "“cures / treats / prevents disease” 属医疗声明；即便产品本身是普通消费品，写了就算。"
+      ]
+    },
+    "textile": {
+      "label_cn": "纺织",
+      "docs": [
+        "textile_1610",
+        "textile_fiber_label",
+        "prop65"
+      ],
+      "risk_notes": [
+        "儿童睡衣适用 16 CFR 1615 / 1616，比 1610 更严；地毯另适用 16 CFR 1630 / 1631。",
+        "纤维成分标签需与实测成分一致，误差范围按 FTC 规则执行。"
+      ]
+    },
+    "furniture": {
+      "label_cn": "家具",
+      "docs": [
+        "tb117",
+        "furniture_1640",
+        "tsca_title6",
+        "prop65"
+      ],
+      "risk_notes": [
+        "Prop 65 对软垫家具的阻燃剂与甲醛暴露关注度高，警告标签与暴露评估需按材料清单逐项核对。",
+        "含人造板的部件需 TSCA Title VI 甲醛合规文件，仅成品检测不足以覆盖板材供应链。",
+        "大件家具另涉及头程体积重与 FBA 尺寸档，合规通过不等于物流可行，需与 08 同步。"
+      ]
+    }
+  },
+  "categories": {
+    "small_appliances": {
+      "label_cn": "小家电（厨房 / 个护 / 生活电器）",
+      "docs": [
+        "ul_nrtl",
+        "cpsc_general",
+        "fcc_part15b",
+        "prop65"
+      ],
+      "risk_notes": [
+        "小家电在 Amazon 多属需审核类目，需提交 NRTL 证书、标签照片与产品六面图。",
+        "带电机或加热件的产品，整机认证标准按具体器具确定，不能拿适配器报告顶替整机报告。",
+        "USB 供电的小家电仍需评估是否含数字电路，从而触发 FCC Part 15 Subpart B。"
+      ]
+    },
+    "kitchenware": {
+      "label_cn": "厨房用具",
+      "docs": [
+        "fda_food_contact",
+        "cpsc_general",
+        "prop65",
+        "ca_ab1200"
+      ],
+      "risk_notes": [
+        "Amazon 厨房类目常要求食品接触材料声明与实拍图；“BPA free”属可验证声明，需有测试支撑。",
+        "AB 1200 仅覆盖炊具（cookware），非炊具厨具不适用，但 PFAS 声明在营销中仍属高风险表述。",
+        "与食物接触的涂层、木制品、竹制品各有对应章节与州法要求。"
+      ]
+    },
+    "electronics": {
+      "label_cn": "电子产品",
+      "docs": [
+        "fcc_part15b",
+        "ul_nrtl",
+        "doe_efficiency",
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "电子产品在 Amazon 需 FCC 合规声明；带无线功能另需 FCC ID，且需在 Listing 与包装可查。",
+        "含电池的电子产品同时叠加锂电池义务，属性标签不能只填 electronics。",
+        "翻新 / 二手电子在平台上另有单独政策，不适用本表。"
+      ]
+    },
+    "toys": {
+      "label_cn": "玩具",
+      "docs": [
+        "cpc",
+        "astm_f963",
+        "tracking_label",
+        "phthalates",
+        "lead",
+        "prop65"
+      ],
+      "risk_notes": [
+        "Amazon 玩具类目为 Gated，需 CPC + 第三方测试报告，审核 2-4 周。",
+        "面向 12 岁以下一律按儿童产品处理，不要用“收藏品 / 成人向”规避。",
+        "含电池玩具叠加锂电池义务，含磁铁玩具叠加 16 CFR 1262。"
+      ]
+    },
+    "beauty": {
+      "label_cn": "美妆个护",
+      "docs": [
+        "mocra",
+        "mocra_gmp",
+        "cosmetic_label",
+        "prop65"
+      ],
+      "risk_notes": [
+        "MoCRA 要求设施注册与产品列名，责任人（Responsible Person）信息必须出现在标签上。",
+        "Amazon 美容类目多属 Gated，另需成分表与安全资料；功效声明受 FTC 约束。",
+        "含酒精、气雾剂或易燃成分的产品另受运输与 VOC 规则限制。"
+      ]
+    },
+    "textile": {
+      "label_cn": "纺织服装",
+      "docs": [
+        "textile_1610",
+        "textile_fiber_label",
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "服装类目在 Amazon 需成分与护理标签，图片中需可辨识。",
+        "儿童服装叠加儿童产品义务（CPC + 追踪标签），睡衣另适用 1615 / 1616。"
+      ]
+    },
+    "furniture": {
+      "label_cn": "家具家居",
+      "docs": [
+        "tb117",
+        "furniture_1640",
+        "tsca_title6",
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "加州销售需 TB 117-2013 标签；跨州销售建议统一按最严州要求准备。",
+        "大件家具的 FBA 入仓尺寸与重量限制严格，合规通过后需立刻确认物流方案（见 08）。"
+      ]
+    },
+    "pet": {
+      "label_cn": "宠物用品",
+      "docs": [
+        "pet_material_safety",
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "宠物食品、零食、保健品走 FDA CVM 与 AAFCO 标签体系，不适用本表。",
+        "宠物玩具仍需按可啃咬、小零件与磁铁风险评估，不能因其不是儿童产品而豁免。",
+        "Amazon 宠物类目部分子类需品牌备案或资质文件。"
+      ]
+    },
+    "sports": {
+      "label_cn": "运动户外",
+      "docs": [
+        "cpsc_general",
+        "astm_sport_standard",
+        "helmet_1203",
+        "prop65"
+      ],
+      "risk_notes": [
+        "护具类（护膝、护腕）多按通用消费品处理；头盔必须过 16 CFR 1203。",
+        "电动运动器材叠加锂电池、FCC 与 UL 义务，按属性标签逐项触发。",
+        "户外用品涉及加州 Prop 65 与部分州化学品披露法规，需按材料清单评估。"
+      ]
+    },
+    "baby": {
+      "label_cn": "母婴用品（不含食品与玩具）",
+      "docs": [
+        "cpsc_general",
+        "cpc",
+        "tracking_label",
+        "baby_gear_registration",
+        "infant_sleep_standards",
+        "fmvss_213",
+        "prop65"
+      ],
+      "risk_notes": [
+        "CPC 与永久追踪标签是 CPSIA 法定义务，不是平台附加要求；建议先备齐再建 Listing。",
+        "16 CFR 1130 产品注册只适用于耐用品婴儿产品（推车、高脚椅、婴儿床等），一次性消耗品不适用。",
+        "16 CFR 1218 / 1219 / 1220 只适用于睡眠类产品；普通母婴用品不套用睡眠标准，需按具体型号复核。",
+        "FMVSS 213 只适用于汽车安全座椅及增高垫；不含安全座椅时该项不适用。",
+        "奶瓶、餐具、牙胶等入口部件叠加 FDA 食品接触材料义务（填 food_contact）；玩具类按 toys 类目另判 ASTM F963。",
+        "婴儿睡眠标准（1218/1219/1220）的适用性与最新修订需实验室 / 合规服务商复核。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "CPSIA 15 U.S.C. 2063 / 16 CFR 1110（CPC）",
+        "CPSIA 15 U.S.C. 2063(a)(5) / 16 CFR 14（Tracking Label）",
+        "16 CFR Part 1130（Durable Infant or Toddler Products）",
+        "16 CFR Part 1218 / 1219 / 1220（婴儿睡眠产品）",
+        "49 CFR 571.213（FMVSS 213）",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "grocery": {
+      "label_cn": "食品与杂货",
+      "docs": [
+        "fda_food_facility_reg",
+        "fsma_preventive_controls",
+        "fda_food_label",
+        "fsvp_importer",
+        "prop65"
+      ],
+      "risk_notes": [
+        "设施注册（21 CFR Part 1 Subpart H）是工厂义务，需确认具体生产设施已注册并每偶数年更新。",
+        "美国进口商需执行 FSVP（21 CFR Part 1 Subpart L）；无 FSVP 记录的货物可能被 FDA 扣留。",
+        "食品标签必须满足 21 CFR Part 101 与 FALCPA 过敏原标示；英文标签缺项会被平台直接下架。",
+        "Amazon 食品类目属高审核类目，常要求生产许可、检测报告与保质期 / 储存条件说明。",
+        "本模块只做文件与规则初筛，不做微生物 / 农残 / 重金属检测；结论必须由实验室与 FDA 注册代理复核。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "21 CFR Part 1 Subpart H（Food Facility Registration）",
+        "21 CFR Part 117（FSMA Preventive Controls）",
+        "21 CFR Part 101 / FD&C Act §403(w)（食品标签与过敏原）",
+        "21 CFR Part 1 Subpart L（FSVP）",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "tools": {
+      "label_cn": "工具与家装",
+      "docs": [
+        "cpsc_general",
+        "prop65",
+        "ansi_hand_tool"
+      ],
+      "risk_notes": [
+        "手动工具没有 UL / FCC 义务；电动工具按电源与数字电路另填 mains_power / radio_frequency，不能一刀切。",
+        "手工具适用 ANSI/ASME B107 系列的具体分册，需按工具类型由实验室确认，本表不做条款推断。",
+        "梯具、护目镜、防割手套等防护类产品另有 ANSI/ISEA 标准，按子类核对。",
+        "胶粘剂、溶剂、油漆等化学品受 TSCA 与加州 CARB VOC 规则约束，本表不覆盖。",
+        "ANSI/ASME B107 的具体分册与版本需实验室 / 合规服务商复核。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "CPSA 15 U.S.C. 2057 / 16 CFR 1120",
+        "ANSI/ASME B107 系列（手工具）",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "office": {
+      "label_cn": "办公用品",
+      "docs": [
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "办公用品大多只有 CPSA 一般消费品义务与 Prop 65；没有「办公类目统一认证」。",
+        "含人造板的桌柜类办公家具填 furniture，触发 TSCA Title VI 甲醛（40 CFR Part 770）与软垫家具阻燃要求。",
+        "电子办公设备（打印机、碎纸机、显示器）填 mains_power / radio_frequency，触发 UL 与 FCC Part 15B；纯耗材不适用。",
+        "recycled / eco-friendly 等环保宣称需有依据并符合 FTC Green Guides（16 CFR Part 260），无依据不得使用。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "CPSA 15 U.S.C. 2057 / 16 CFR 1120",
+        "40 CFR Part 770（TSCA Title VI）",
+        "47 CFR Part 15 Subpart B（FCC）",
+        "16 CFR Part 260（FTC Green Guides）",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "jewelry": {
+      "label_cn": "珠宝首饰",
+      "docs": [
+        "cpsc_general",
+        "prop65",
+        "ca_jewelry_lead",
+        "ftc_jewelry_guides"
+      ],
+      "risk_notes": [
+        "儿童首饰按 CPSIA 铅限值（100 ppm）与邻苯要求判定（填 children_under_12），成人首饰不自动豁免加州金属首饰法。",
+        "加州销售的表层金属 / 电镀首饰适用 Health & Safety Code §25214.10，需提供铅含量检测。",
+        "贵金属、镀层、宝石标注受 FTC Jewelry Guides（16 CFR Part 23）约束，gold plated / sterling 等词不能滥用。",
+        "贴身佩戴类需评估镍释放与皮肤接触过敏风险，Prop 65 警告与检测报告按材料清单核对。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "California Health & Safety Code §25214.10 / §25214.10.1",
+        "16 CFR Part 23（FTC Jewelry Guides）",
+        "16 CFR 1303 / CPSIA 铅限值",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "watches": {
+      "label_cn": "钟表",
+      "docs": [
+        "cpsc_general",
+        "prop65"
+      ],
+      "risk_notes": [
+        "机械 / 石英表没有 FCC 与 UL 义务；智能表填 radio_frequency（FCC ID + RF 暴露）与 mains_power（充电器）。",
+        "含锂电池的智能表叠加 UN38.3 与运输标签义务（填 lithium_battery），空运可行性需与 08 确认。",
+        "石英表多为纽扣电池，按 alkaline_battery 核对无汞 / 低汞声明。",
+        "防水标注必须有 IP 等级或测试报告支撑；无报告不得写 waterproof / water resistant。",
+        "表带材质涉及皮肤接触与 Prop 65（镍、铅、邻苯），按材料清单逐项核对。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "47 CFR Part 15 Subpart B / Subpart C（FCC）",
+        "47 CFR 2.1091 / 2.1093（RF 暴露）",
+        "UN Manual of Tests and Criteria, Part III, 38.3（UN38.3）",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    },
+    "full_size_appliances": {
+      "label_cn": "大型家电",
+      "docs": [
+        "ul_nrtl",
+        "doe_efficiency",
+        "ftc_energy_guide",
+        "fcc_part15b",
+        "prop65",
+        "epa_refrigerant"
+      ],
+      "risk_notes": [
+        "DOE 能效标准按具体品类适用（10 CFR Part 430），不能拿外置电源适配器的 Appendix Z 顶替整机能效。",
+        "受管制品类需在包装与 Listing 提供 EnergyGuide 标签数据（16 CFR Part 305）。",
+        "含制冷剂的冰箱 / 空调叠加 AIM Act 与 EPA SNAP 要求，需确认制冷剂类型与配额。",
+        "大件家电的头程体积重与 FBA 尺寸档限制严格，合规通过不等于物流可行，需与 08 同步。",
+        "制冷剂（40 CFR Part 84）与 DOE 品类适用性需实验室 / 报关行复核。"
+      ],
+      "as_of": "2026-10-30",
+      "confidence": "needs_review",
+      "sources": [
+        "UL 60335 系列 / NRTL 列名",
+        "10 CFR Part 430（DOE 能效标准）",
+        "16 CFR Part 305（FTC EnergyGuide）",
+        "47 CFR Part 15 Subpart B（FCC）",
+        "40 CFR Part 84（AIM Act）/ EPA SNAP",
+        "California Health & Safety Code §25249.5（Prop 65）"
+      ]
+    }
+  },
+  "marketplaces": {
+    "amazon_us": {
+      "label": "Amazon US",
+      "docs": [
+        "amazon_category_approval",
+        "amazon_label_review"
+      ],
+      "risk_notes": [
+        "Amazon 要求提交的文件通常是 PDF 报告 + 产品与包装六面图，报告主体需与卖家 / 制造商链条可解释。",
+        "类目审核结论由平台作出，本工具只做前置预判，不代表审核一定通过。",
+        "受限类目（玩具、个护、食品接触、医疗）建议先备齐文件再建 Listing，避免上架后被压测下架。"
+      ]
+    },
+    "tiktok_us": {
+      "label": "TikTok Shop US",
+      "docs": [
+        "tiktok_category_qualification",
+        "tiktok_product_cert"
+      ],
+      "risk_notes": [
+        "TikTok Shop US 对电池、化妆品、儿童品类限制较多，禁售限售清单更新频繁，上架前查最新商家规则。",
+        "TikTok 的商品资质审核偏重“文件 + 实物一致性”，详情页描述与报告不符会被驳回。"
+      ]
+    }
+  },
+  "global_risk_notes": [
+    "本表是初始筛，不替代合规服务商或律师的适用性判定。",
+    "认证周期：常见 2-8 周，儿童类第三方测试、FCC 认证与 UL 整改在旺季更久，需按上市日倒排。",
+    "报告有效期：多数平台接受 1-3 年内报告，部分类目要求 12 个月内；出报告主体与产品型号必须与实际一致。",
+    "平台类目审核：文件齐全不等于审核通过，Amazon 与 TikTok Shop 均保留拒绝权。",
+    "属性标签少填一项就少一条义务：lithium_battery、food_contact、children_under_12 这三项最容易被漏。"
+  ],
+  "ip_screening": {
+    "items": [
+      {
+        "id": "us_trademark",
+        "item": "USPTO 商标初筛",
+        "scope": "相同 / 近似文字与图形，重点查看产品所属类及 21、35 类",
+        "authority": "USPTO 商标检索（TESS / TSDR）"
+      },
+      {
+        "id": "us_design_patent",
+        "item": "美国外观设计专利初筛",
+        "scope": "产品外形、杯体 / 刀头 / 结构等视觉特征",
+        "authority": "USPTO Design Patent 检索"
+      },
+      {
+        "id": "us_utility_patent",
+        "item": "美国实用专利初筛（FTO）",
+        "scope": "结构、工作原理、关键机构",
+        "authority": "USPTO Utility Patent / Google Patents"
+      },
+      {
+        "id": "amazon_brand_registry",
+        "item": "Amazon Brand Registry 与品牌保护",
+        "scope": "是否具备注册商标、是否可备案与举报跟卖",
+        "authority": "Amazon Brand Registry 规则"
+      }
+    ],
+    "trademark_status_map": {
+      "none": "missing",
+      "pending": "unknown",
+      "registered_us": "have",
+      "conflict": "blocked"
+    },
+    "notes": [
+      "初筛不是法律意见：仅做关键词与图形检索，不构成 FTO 结论。",
+      "pending 状态不产生可诉权利，也不能阻止他人注册，不能当作“已解决”。",
+      "外观专利侵权判定需逐项比对权利要求，必须由专利律师出具意见。",
+      "跟卖与侵权投诉的后果常比补件更严重（Listing 下架 + 账号绩效），新品上架前先做 IP 初筛。"
+    ]
+  }
+}

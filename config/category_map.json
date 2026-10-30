@@ -1,0 +1,181 @@
+{
+  "_meta": {
+    "updated": "2026-10-30",
+    "version": "1.1.0",
+    "note": "category_key 是 01→08 唯一类目键；平台类目路径仅用于展示与旧数据映射，不参与计算。改类目先改本文件。compliance_key 为 null 表示该明细类目暂无合规规则映射，03 会报 [INPUT_MISSING]。",
+    "sources": [
+      "Amazon US 销售佣金费率卡（Seller Central GTG4BAWSY39Z98Z3）",
+      "Amazon US Browse Tree Guide（类目路径）",
+      "Agents/03_Compliance_Agent/scripts/compliance_rules.json（合规类目键）",
+      "Agents/03_Compliance_Agent/scripts/compliance_rules.json（7 个类目补齐后的合规键）"
+    ]
+  },
+  "categories": {
+    "home_kitchen": {
+      "label": "Home & Kitchen",
+      "us_fees_key": "home_kitchen",
+      "compliance_key": "kitchenware",
+      "platform_paths": [
+        "Home & Kitchen"
+      ]
+    },
+    "small_appliances": {
+      "label": "Small Appliances",
+      "us_fees_key": "small_appliances",
+      "compliance_key": "small_appliances",
+      "platform_paths": [
+        "Home & Kitchen > Kitchen & Dining > Small Appliances",
+        "Home & Kitchen > Small Appliances",
+        "Home Appliances > Small Appliances",
+        "Small Appliances"
+      ]
+    },
+    "electronics": {
+      "label": "Consumer Electronics",
+      "us_fees_key": "electronics",
+      "compliance_key": "electronics",
+      "platform_paths": [
+        "Electronics",
+        "Consumer Electronics"
+      ]
+    },
+    "electronics_accessories": {
+      "label": "Electronics Accessories",
+      "us_fees_key": "electronics_accessories",
+      "compliance_key": "electronics",
+      "platform_paths": [
+        "Electronics > Accessories",
+        "Electronics > Accessories & Supplies",
+        "Cell Phones & Accessories",
+        "Computers & Accessories"
+      ]
+    },
+    "clothing": {
+      "label": "Clothing & Accessories",
+      "us_fees_key": "clothing",
+      "compliance_key": "textile",
+      "platform_paths": [
+        "Clothing, Shoes & Jewelry > Clothing",
+        "Clothing, Shoes & Jewelry",
+        "Clothing"
+      ]
+    },
+    "beauty": {
+      "label": "Beauty & Personal Care",
+      "us_fees_key": "beauty",
+      "compliance_key": "beauty",
+      "platform_paths": [
+        "Beauty & Personal Care",
+        "Beauty"
+      ]
+    },
+    "baby": {
+      "label": "Baby",
+      "us_fees_key": "baby",
+      "compliance_key": "baby",
+      "platform_paths": [
+        "Baby",
+        "Baby Products"
+      ]
+    },
+    "grocery": {
+      "label": "Grocery",
+      "us_fees_key": "grocery",
+      "compliance_key": "grocery",
+      "platform_paths": [
+        "Grocery & Gourmet Food",
+        "Grocery"
+      ]
+    },
+    "toys": {
+      "label": "Toys & Games",
+      "us_fees_key": "toys",
+      "compliance_key": "toys",
+      "platform_paths": [
+        "Toys & Games"
+      ]
+    },
+    "sports": {
+      "label": "Sports & Outdoors",
+      "us_fees_key": "sports",
+      "compliance_key": "sports",
+      "platform_paths": [
+        "Sports & Outdoors"
+      ]
+    },
+    "tools": {
+      "label": "Tools & Home Improvement",
+      "us_fees_key": "tools",
+      "compliance_key": "tools",
+      "platform_paths": [
+        "Tools & Home Improvement",
+        "Home Improvement"
+      ]
+    },
+    "office": {
+      "label": "Office Products",
+      "us_fees_key": "office",
+      "compliance_key": "office",
+      "platform_paths": [
+        "Office Products"
+      ]
+    },
+    "pet": {
+      "label": "Pet Supplies",
+      "us_fees_key": "pet",
+      "compliance_key": "pet",
+      "platform_paths": [
+        "Pet Supplies"
+      ]
+    },
+    "furniture": {
+      "label": "Furniture",
+      "us_fees_key": "furniture",
+      "compliance_key": "furniture",
+      "platform_paths": [
+        "Home & Kitchen > Furniture",
+        "Furniture"
+      ]
+    },
+    "jewelry": {
+      "label": "Jewelry",
+      "us_fees_key": "jewelry",
+      "compliance_key": "jewelry",
+      "platform_paths": [
+        "Clothing, Shoes & Jewelry > Jewelry",
+        "Jewelry"
+      ]
+    },
+    "watches": {
+      "label": "Watches",
+      "us_fees_key": "watches",
+      "compliance_key": "watches",
+      "platform_paths": [
+        "Clothing, Shoes & Jewelry > Watches",
+        "Watches"
+      ]
+    },
+    "full_size_appliances": {
+      "label": "Full-size Appliances",
+      "us_fees_key": "full_size_appliances",
+      "compliance_key": "full_size_appliances",
+      "platform_paths": [
+        "Appliances > Full-size Appliances",
+        "Appliances"
+      ]
+    },
+    "default": {
+      "label": "All Other Categories",
+      "us_fees_key": "default",
+      "compliance_key": null,
+      "platform_paths": []
+    }
+  },
+  "aliases": {
+    "small_appliance": "small_appliances",
+    "kitchenware": "home_kitchen",
+    "textile": "clothing",
+    "apparel": "clothing",
+    "home-and-kitchen": "home_kitchen"
+  }
+}

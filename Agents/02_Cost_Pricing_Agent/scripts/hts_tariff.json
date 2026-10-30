@@ -1,0 +1,78 @@
+{
+  "_meta": {
+    "updated": "2026-10-30",
+    "currency": "USD",
+    "basis": "从价税（ad valorem），按海关完税价（本模块按 FOB）计征",
+    "hts_revision": "2026 HTS Revision 19",
+    "as_of": "2026-10-09",
+    "disclaimer": "仅覆盖 MFN（第 1 栏一般税率）+ 已建模的 Section 301 附加层；IEEPA、对等关税、Section 232、AD/CVD、配额等未计入，必须由报关行复核。",
+    "notes": [
+      "duty_pct = mfn_pct + section301_pct（均为从价税，未考虑排除清单与产品具体子目）。",
+      "2026 年新增「Section 301 强迫劳动」附加层（9903.05.31，中国 +12.5%），已并入 8509.40 的 section301_pct。",
+      "8509.40 中国产成品（含 8509.40.00.15 Blenders）全包 16.7% = MFN 4.2% + 9903.05.31 12.5%；该行未叠加 9903.88.03（List 3）。",
+      "8509.90（零件）中国口径为 41.7%（另含 9903.88.03 25%），与整机不同，勿混用。",
+      "标 unverified=true 的条目为 2025 口径示例，未核校 2026 附加层；使用时脚本会提示，正式报价请用 --duty-pct 覆盖。",
+      "HTS 归类与最终税率由报关行确认；同一 4 位品目下不同 10 位子目税率可能不同。"
+    ],
+    "sources": [
+      "USITC 2026 HTS Revision 19（经 Borderless 2026-10-09 全包税率核校）：https://borderless.us/hts/8509",
+      "USITC China Tariffs：https://learning.usitc.gov/hts-docs/documents/China%20Tariffs.pdf"
+    ]
+  },
+  "codes": {
+    "8509.40": {
+      "description": "Food grinders, processors and mixers; fruit or vegetable juice extractors",
+      "description_cn": "搅拌/榨汁类小家电（含 8509.40.00.15 Blenders）",
+      "mfn_pct": 4.2,
+      "section301_pct": 12.5,
+      "additional_provision": "9903.05.31 Section 301（强迫劳动），中国 +12.5%",
+      "origin": "CN",
+      "all_in_pct": 16.7,
+      "verified": true,
+      "note": "中国产地全包 16.7%（2026 HTS Rev.19，2026-10-09 口径）；非 29.2%，该行不叠加 9903.88.03。"
+    },
+    "8509.90": {
+      "description": "Parts of electromechanical domestic appliances",
+      "description_cn": "小家电零件（杯体、刀座、外壳等）",
+      "mfn_pct": 4.2,
+      "section301_pct": 37.5,
+      "additional_provision": "9903.05.31（+12.5%）+ 9903.88.03 List 3（+25%）",
+      "origin": "CN",
+      "all_in_pct": 41.7,
+      "verified": true,
+      "note": "中国产地全包 41.7%（零件档，与整机 16.7% 差异极大）；单独报关零件时必须用本行。"
+    },
+    "8516": {
+      "description": "Electrothermic appliances (coffee makers, toasters, heaters, etc.)",
+      "description_cn": "电热器具",
+      "mfn_pct": 3.7,
+      "section301_pct": 25.0,
+      "verified": false,
+      "note": "未核校示例（2025 口径，未含 2026 强迫劳动附加层）；必须按 2026 Rev.19 复核或用 --duty-pct 覆盖。"
+    },
+    "3924": {
+      "description": "Plastic tableware, kitchenware and other household articles",
+      "description_cn": "塑料餐具/厨房塑料制品",
+      "mfn_pct": 3.4,
+      "section301_pct": 7.5,
+      "verified": false,
+      "note": "未核校示例（2025 口径）；子目差异大，必须复核或用 --duty-pct 覆盖。"
+    },
+    "6307": {
+      "description": "Other made-up textile articles",
+      "description_cn": "纺织制品（抹布、收纳袋等）",
+      "mfn_pct": 7.0,
+      "section301_pct": 7.5,
+      "verified": false,
+      "note": "未核校示例（2025 口径）；子目差异大，必须复核或用 --duty-pct 覆盖。"
+    },
+    "8479": {
+      "description": "Machines and mechanical appliances having individual functions",
+      "description_cn": "机械设备（含部分小家电配件）",
+      "mfn_pct": 2.5,
+      "section301_pct": 25.0,
+      "verified": false,
+      "note": "未核校示例（2025 口径）；需按具体功能与子目归类，必须复核或用 --duty-pct 覆盖。"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+sku,factory_rmb,freight_per_unit,hts,category,weight_g,ads_pct,returns_pct,price,target_margin,moq
+PB-16OZ-01,38,1.60,8509.40,home_kitchen,620,10,3,29.99,25,500
+PB-CUP-02,12,0.60,3924,home_kitchen,100,8,2,12.99,30,1000
+PB-BLADE-03,8,0.35,8479,home_kitchen,60,8,2,9.99,30,2000
+PB-BUNDLE-04,52,2.20,8509.40,home_kitchen,1400,10,3,39.99,25,300
+PB-BOTTLE-05,22,0.95,3924,home_kitchen,250,8,2,18.99,28,800

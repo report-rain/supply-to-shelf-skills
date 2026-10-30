@@ -1,0 +1,264 @@
+{
+  "_meta": {
+    "updated": "2026-10-30",
+    "currency": "USD",
+    "disclaimer": "编写时公开口径，发布前按卖家中心/官方费率卡复核",
+    "sources": [
+      "Amazon US 销售佣金（Seller Central GTG4BAWSY39Z98Z3）：https://sellercentral.amazon.com/help/hub/reference/external/GTG4BAWSY39Z98Z3?language=en_US",
+      "Amazon US 2026 年 FBA 配送费用变更（GABBX6GZPA8MSZGW）：https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW?langue=en-US",
+      "TikTok Shop US 佣金说明（Academy，2024-04-01 起 6%）：https://seller.tiktokglobalshop.com/university/essay?identity=1&role=1&knowledge_id=140687984494338"
+    ],
+    "notes": [
+      "Referral 为「总销售价格」百分比，分段类目按金额区间逐段累加（与官方口径一致：不超过某金额的部分按低档，超出部分按高档）。",
+      "Referral 实收取「计算值」与「每件最低销售佣金」中的较大值；Amazon US 最低 $0.30。",
+      "FBA 为 2026 年表：非旺季 2026-01-15 至 2026-10-14，旺季 2026-10-15 至 2027-01-14，均不含燃油与物流附加费。",
+      "自 2026-04-17 起，FBA 配送费加收 3.5% 燃油和物流相关附加费；脚本按 ship-date 自动判断，可用 --no-fuel-surcharge 关闭。",
+      "FBA 未含入库配置费、月度仓储费、低库存水平费、退货处理费、超龄库存附加费。",
+      "所有费率随平台调整，发布前必须按卖家中心/官方费率卡复核。"
+    ]
+  },
+  "platforms": {
+    "amazon_us": {
+      "name": "Amazon US",
+      "default_referral_pct": 15.0,
+      "min_referral_fee_usd": 0.30,
+      "categories": {
+        "home_kitchen": {
+          "label": "Home & Kitchen",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}],
+          "note": "家居及厨房用品 15%，最低 $0.30"
+        },
+        "small_appliances": {
+          "label": "Small Appliances",
+          "tiers": [
+            {"max_price_usd": 300.0, "pct": 15.0},
+            {"max_price_usd": null, "pct": 8.0}
+          ],
+          "note": "小型电器：≤$300 的部分 15%，超出 $300 的部分 8%"
+        },
+        "electronics": {
+          "label": "Consumer Electronics",
+          "tiers": [{"max_price_usd": null, "pct": 8.0}],
+          "note": "消费类电子产品 8%"
+        },
+        "electronics_accessories": {
+          "label": "Electronics Accessories",
+          "tiers": [
+            {"max_price_usd": 100.0, "pct": 15.0},
+            {"max_price_usd": null, "pct": 8.0}
+          ],
+          "note": "电子配件：≤$100 的部分 15%，超出 $100 的部分 8%"
+        },
+        "clothing": {
+          "label": "Clothing & Accessories",
+          "tiers": [
+            {"max_price_usd": 15.0, "pct": 5.0},
+            {"max_price_usd": 20.0, "pct": 10.0},
+            {"max_price_usd": null, "pct": 17.0}
+          ],
+          "note": "服装配饰：≤$15 5%；$15–$20 部分 10%；>$20 部分 17%"
+        },
+        "beauty": {
+          "label": "Beauty & Personal Care",
+          "tiers": [
+            {"max_price_usd": 10.0, "pct": 8.0},
+            {"max_price_usd": null, "pct": 15.0}
+          ],
+          "note": "美妆个护：≤$10 8%，>$10 15%"
+        },
+        "baby": {
+          "label": "Baby",
+          "tiers": [
+            {"max_price_usd": 10.0, "pct": 8.0},
+            {"max_price_usd": null, "pct": 15.0}
+          ],
+          "note": "母婴：≤$10 8%，>$10 15%"
+        },
+        "grocery": {
+          "label": "Grocery",
+          "tiers": [
+            {"max_price_usd": 15.0, "pct": 8.0},
+            {"max_price_usd": null, "pct": 15.0}
+          ],
+          "min_fee_usd": 0.0,
+          "note": "食品：≤$15 8%，>$15 15%；官方最低佣金栏为「--」，脚本按 $0 处理"
+        },
+        "toys": {
+          "label": "Toys & Games",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}]
+        },
+        "sports": {
+          "label": "Sports & Outdoors",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}]
+        },
+        "tools": {
+          "label": "Tools & Home Improvement",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}]
+        },
+        "office": {
+          "label": "Office Products",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}]
+        },
+        "pet": {
+          "label": "Pet Supplies",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}],
+          "note": "处方饲粮为 22%"
+        },
+        "furniture": {
+          "label": "Furniture",
+          "tiers": [
+            {"max_price_usd": 200.0, "pct": 15.0},
+            {"max_price_usd": null, "pct": 10.0}
+          ],
+          "note": "家具：≤$200 的部分 15%，超出部分 10%"
+        },
+        "jewelry": {
+          "label": "Jewelry",
+          "tiers": [
+            {"max_price_usd": 250.0, "pct": 20.0},
+            {"max_price_usd": null, "pct": 5.0}
+          ],
+          "note": "珠宝：≤$250 的部分 20%，超出部分 5%"
+        },
+        "watches": {
+          "label": "Watches",
+          "tiers": [
+            {"max_price_usd": 1500.0, "pct": 16.0},
+            {"max_price_usd": null, "pct": 3.0}
+          ],
+          "note": "钟表：≤$1,500 的部分 16%，超出部分 3%"
+        },
+        "full_size_appliances": {
+          "label": "Full-size Appliances",
+          "tiers": [{"max_price_usd": null, "pct": 8.0}]
+        },
+        "default": {
+          "label": "All Other Categories",
+          "tiers": [{"max_price_usd": null, "pct": 15.0}],
+          "note": "无法明确归类时按「所有其他分类」15%"
+        }
+      }
+    },
+    "tiktok_us": {
+      "name": "TikTok Shop US",
+      "default_referral_pct": 6.0,
+      "min_referral_fee_usd": 0.0,
+      "new_seller_promo_pct": 3.0,
+      "new_seller_window_days": 60,
+      "new_seller_gmv_cap_usd": 500000.0,
+      "note": "自 2024-04-01 起平台佣金 6%；新卖家前 60 天 3%（累计 GMV 上限 $500k）。类目/活动费率、达人佣金另计。"
+    }
+  },
+  "fba": {
+    "_meta": {
+      "updated": "2026-10-30",
+      "note": "2026 年 FBA 配送费（服装除外），价格档 <$10 / $10–$50 / >$50；未含 3.5% 燃油与物流附加费。",
+      "source": "https://sellercentral.amazon.com/help/hub/reference/external/GABBX6GZPA8MSZGW?langue=en-US"
+    },
+    "fuel_surcharge_pct": 3.5,
+    "fuel_surcharge_effective": "2026-04-17",
+    "windows": {
+      "nonpeak": {"start": "2026-01-15", "end": "2026-10-14"},
+      "peak": {"start": "2026-10-15", "end": "2027-01-14"}
+    },
+    "price_bands": {"lt10": "<$10", "10_50": "$10–$50", "gt50": ">$50"},
+    "tiers": {
+      "small_standard": {
+        "label": "Small Standard",
+        "max_weight_oz": 16,
+        "dim_limit_note": "最长边 ≤15in、次长 ≤12in、最短 ≤0.75in；以商品实重计费",
+        "rates": {
+          "nonpeak": [
+            {"max_oz": 2, "fees": {"lt10": 2.43, "10_50": 3.32, "gt50": 3.58}},
+            {"max_oz": 4, "fees": {"lt10": 2.49, "10_50": 3.42, "gt50": 3.68}},
+            {"max_oz": 6, "fees": {"lt10": 2.56, "10_50": 3.45, "gt50": 3.71}},
+            {"max_oz": 8, "fees": {"lt10": 2.66, "10_50": 3.54, "gt50": 3.80}},
+            {"max_oz": 10, "fees": {"lt10": 2.77, "10_50": 3.68, "gt50": 3.94}},
+            {"max_oz": 12, "fees": {"lt10": 2.82, "10_50": 3.78, "gt50": 4.04}},
+            {"max_oz": 14, "fees": {"lt10": 2.92, "10_50": 3.91, "gt50": 4.17}},
+            {"max_oz": 16, "fees": {"lt10": 2.95, "10_50": 3.96, "gt50": 4.22}}
+          ],
+          "peak": [
+            {"max_oz": 2, "fees": {"lt10": 2.62, "10_50": 3.51, "gt50": 3.77}},
+            {"max_oz": 4, "fees": {"lt10": 2.68, "10_50": 3.61, "gt50": 3.87}},
+            {"max_oz": 6, "fees": {"lt10": 2.76, "10_50": 3.65, "gt50": 3.91}},
+            {"max_oz": 8, "fees": {"lt10": 2.86, "10_50": 3.74, "gt50": 4.00}},
+            {"max_oz": 10, "fees": {"lt10": 2.98, "10_50": 3.89, "gt50": 4.15}},
+            {"max_oz": 12, "fees": {"lt10": 3.03, "10_50": 3.99, "gt50": 4.25}},
+            {"max_oz": 14, "fees": {"lt10": 3.14, "10_50": 4.13, "gt50": 4.39}},
+            {"max_oz": 16, "fees": {"lt10": 3.17, "10_50": 4.18, "gt50": 4.44}}
+          ]
+        }
+      },
+      "large_standard": {
+        "label": "Large Standard",
+        "max_weight_oz": 320,
+        "dim_limit_note": "最长边 ≤18in、次长 ≤14in、最短 ≤8in；按商品实重与体积重较大者计费",
+        "rates": {
+          "nonpeak": [
+            {"max_oz": 4, "fees": {"lt10": 2.91, "10_50": 3.73, "gt50": 3.99}},
+            {"max_oz": 8, "fees": {"lt10": 3.13, "10_50": 3.95, "gt50": 4.21}},
+            {"max_oz": 12, "fees": {"lt10": 3.38, "10_50": 4.20, "gt50": 4.46}},
+            {"max_oz": 16, "fees": {"lt10": 3.78, "10_50": 4.60, "gt50": 4.86}},
+            {"max_oz": 20, "fees": {"lt10": 4.22, "10_50": 5.04, "gt50": 5.30}},
+            {"max_oz": 24, "fees": {"lt10": 4.60, "10_50": 5.42, "gt50": 5.68}},
+            {"max_oz": 28, "fees": {"lt10": 4.75, "10_50": 5.57, "gt50": 5.83}},
+            {"max_oz": 32, "fees": {"lt10": 5.00, "10_50": 5.82, "gt50": 6.08}},
+            {"max_oz": 36, "fees": {"lt10": 5.10, "10_50": 5.92, "gt50": 6.18}},
+            {"max_oz": 40, "fees": {"lt10": 5.28, "10_50": 6.10, "gt50": 6.36}},
+            {"max_oz": 44, "fees": {"lt10": 5.44, "10_50": 6.26, "gt50": 6.52}},
+            {"max_oz": 48, "fees": {"lt10": 5.85, "10_50": 6.67, "gt50": 6.93}},
+            {
+              "max_oz": 320,
+              "over_3lb": {
+                "base": {"lt10": 6.15, "10_50": 6.97, "gt50": 7.23},
+                "per_4oz_usd": 0.08
+              }
+            }
+          ],
+          "peak": [
+            {"max_oz": 4, "fees": {"lt10": 3.15, "10_50": 3.97, "gt50": 4.23}},
+            {"max_oz": 8, "fees": {"lt10": 3.39, "10_50": 4.21, "gt50": 4.47}},
+            {"max_oz": 12, "fees": {"lt10": 3.66, "10_50": 4.48, "gt50": 4.74}},
+            {"max_oz": 16, "fees": {"lt10": 4.07, "10_50": 4.89, "gt50": 5.15}},
+            {"max_oz": 20, "fees": {"lt10": 4.52, "10_50": 5.34, "gt50": 5.60}},
+            {"max_oz": 24, "fees": {"lt10": 4.91, "10_50": 5.73, "gt50": 5.99}},
+            {"max_oz": 28, "fees": {"lt10": 5.07, "10_50": 5.89, "gt50": 6.15}},
+            {"max_oz": 32, "fees": {"lt10": 5.33, "10_50": 6.15, "gt50": 6.41}},
+            {"max_oz": 36, "fees": {"lt10": 5.47, "10_50": 6.29, "gt50": 6.55}},
+            {"max_oz": 40, "fees": {"lt10": 5.67, "10_50": 6.49, "gt50": 6.75}},
+            {"max_oz": 44, "fees": {"lt10": 5.84, "10_50": 6.66, "gt50": 6.92}},
+            {"max_oz": 48, "fees": {"lt10": 6.26, "10_50": 7.08, "gt50": 7.34}},
+            {
+              "max_oz": 320,
+              "over_3lb": {
+                "base": {"lt10": 6.69, "10_50": 7.51, "gt50": 7.77},
+                "per_4oz_usd": 0.08
+              }
+            }
+          ]
+        }
+      },
+      "small_bulky": {
+        "label": "Small Bulky",
+        "max_weight_lb": 50,
+        "dim_limit_note": "最长边 ≤59in、次长 ≤33in、最短 ≤33in、长+围长 ≤130in",
+        "base": {
+          "nonpeak": {"lt10": 6.78, "10_50": 7.55, "gt50": 7.55},
+          "peak": {"lt10": 7.82, "10_50": 8.59, "gt50": 8.59}
+        },
+        "per_lb_over_first_usd": 0.38
+      },
+      "large_bulky": {
+        "label": "Large Bulky",
+        "max_weight_lb": 50,
+        "dim_limit_note": "同上尺寸上限，重量更高或按体积重落入本档",
+        "base": {
+          "nonpeak": {"lt10": 8.58, "10_50": 9.35, "gt50": 9.35},
+          "peak": {"lt10": 9.62, "10_50": 10.39, "gt50": 10.39}
+        },
+        "per_lb_over_first_usd": 0.38
+      }
+    }
+  }
+}
