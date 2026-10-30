@@ -126,6 +126,9 @@
 | 9 | 07 | 无此开关，CRITICAL 也退出 0 | 新增 `--fail-on-critical`：开启时 CRITICAL 退出 1；默认关闭保持旧行为 | 用户清单 §9 | 07 默认路径不变；仅新开关生效时改变退出码 | 待实施 |
 | 10 | 08 | `--carrying-rate-pct` 无上下限校验 | 取值校验 0–100，越界 exit 2 | 用户清单 §10 | 08 参数校验；合法区间内结果不变 | 待实施 |
 | 11 | 08 | 示例文档写 4995，脚本实算 4335 | 以脚本实算为准修正文档 | 用户清单 §11 | 仅文档；脚本行为不变 | 待实施 |
+| 12 | 05 | 视频数值字段非法 / JSON 损坏 / 编码不可读 → traceback + exit 1 | 全部输入异常统一 `status=INPUT_ERROR` + exit 2，无 traceback | 无人值守指令阶段 2.5 | 05 视频 spec 解析与数值校验；成功路径不变 | **已实施**：`asset_check.py` 的 `video_number()`、`run_video()` 异常分支；测试 `tests/test_creative.py::InputErrorTests` 四条 |
+| 13 | 01 | 同价且 Σ销量=0 → `ZeroDivisionError` exit 1 | 转业务告警：`meta.status="WARNING"`、`price_bands=[]`、exit 0 | 无人值守指令阶段 2.5 | market 该边界；其他样本输出不变 | **已实施**：`market_metrics.py` 的 `price_bands()`/`compute()`；测试 `tests/test_selection.py::BaselineTests::test_market_metrics_same_price_zero_sales_warns` |
+| 14 | 05 | `--fix` 指向原图会覆盖源文件 | 拒绝覆盖，`status=INPUT_ERROR` + exit 2 | 无人值守指令阶段 2.5 | 05 `--fix` 同路径分支；其他路径不变 | **已实施**：`asset_check.py` 的 `run_image()`；测试 `tests/test_creative.py::InputErrorTests::test_fix_same_path_rejected` |
 
 补充说明（#7 与 #11 的编号对应）：
 - #7 04 A+ 模块顺序：旧实现未校验模块顺序。新行为——补上顺序校验，缺必需模块或顺序错误判 FAIL。依据：用户清单 §7；影响面：04 A+ 校验结果（原先可通过的组合可能转为 FAIL）。本轮状态：待实施。

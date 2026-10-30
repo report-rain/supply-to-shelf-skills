@@ -152,6 +152,48 @@ class InputErrorTests(CreativeTestBase):
         self.assertEqual(payload["status"], "INPUT_ERROR")
         self.assertIn("视频尺寸非法", payload["message"])
 
+    def test_invalid_numeric_video_exit_2(self):
+        """#12：数值字段非法不再 traceback，统一 INPUT_ERROR + exit 2。"""
+        spec = self.write_json("badnum.json", dict(VIDEO, width="abc"))
+        result = run(["--spec", str(spec), "--platform", "tiktok_us", "--json"])
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, "")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "INPUT_ERROR")
+        self.assertIn("视频数值字段非法：width='abc'", payload["message"])
+
+    def test_corrupt_json_status_input_error(self):
+        """#12：JSON 语法损坏统一为 INPUT_ERROR（旧实现为 INPUT_MISSING）。"""
+        path = self.tmp / "broken.json"
+        path.write_text("{bad json", encoding="utf-8")
+        result = run(["--spec", str(path), "--platform", "tiktok_us", "--json"])
+        self.assertEqual(result.returncode, 2)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "INPUT_ERROR")
+        self.assertIn("JSON 解析失败", payload["message"])
+
+    def test_unreadable_encoding_exit_2(self):
+        """#12：非 UTF-8 编码文件给明确错误，不再抛 UnicodeDecodeError。"""
+        path = self.tmp / "gbk.json"
+        path.write_bytes(b'{"width":1080}\xff\xfe')
+        result = run(["--spec", str(path), "--platform", "tiktok_us", "--json"])
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, "")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "INPUT_ERROR")
+        self.assertIn("文件编码不可读", payload["message"])
+
+    def test_fix_same_path_rejected(self):
+        """#14：--fix 指向原图时拒绝覆盖，exit 2。"""
+        path = self.tmp / "same.png"
+        path.write_bytes(b"")
+        result = run([str(path), "--platform", "amazon_us", "--fix", str(path), "--json"])
+        self.assertEqual(result.returncode, 2)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "INPUT_ERROR")
+        self.assertIn("--fix 输出路径不能与原图相同", payload["message"])
+        self.assertEqual(path.read_bytes(), b"")
+
 
 class VideoTests(CreativeTestBase):
     def test_tiktok_spec_pass_with_manual_checks(self):

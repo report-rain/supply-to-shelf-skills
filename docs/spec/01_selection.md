@@ -205,13 +205,14 @@ cr3_meaningful:bool, cr10_meaningful:bool, top:[{name, monthly_sales:num(2),
 sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部主体，按销量降序，人类报告只取前 10。
 `review_thresholds` 固定四档顺序：`<50`、`50–99`、`100–499`、`≥500`。
 `price_bands` 的 `label` 为 `$lower–$upper`（两位小数 + 千分位）；**唯一例外**：全样本同价时只有 1 档，`label` 退化为单值 `$price`（如 `$29.99`）。
+同价且 `Σmonthly_sales==0` 时（#13），`price_bands` 为 `[]`，`meta` 额外带 `status:"WARNING"` 与 `warnings:["同价样本且总月销量为 0，销量份额无法计算；价格带输出已置空。"]`，退出码 0。其余情况 `meta` 不含这两个键（保持旧 JSON 形态）。
 
 人类可读（Markdown）结构要点：
 1. 标题 `# 美国站类目市场测算`；头部列出样本数、金额口径、集中度口径（HHI 0–10,000）。
 2. `## 1. 市场容量`：两列表（指标/数值），总月销量与销售额、均价（简单平均）、中位价、价格区间。
 3. `## 2./3. 品牌/卖家集中度`：CR3、CR10、HHI、主体数；主体数 ≤3/≤10 时追加 ⚠️ 无意义提示；主体表前 10，列为主体/月销量/销量份额/月销售额/商品数。
 4. `## 4. 评论门槛分布`：四档，列含商品数、商品数占比、月销量、销量占比。
-5. `## 5. 价格带分布（等宽 N 档）`：`#`、价格带、商品数、月销量、销量占比、月销售额。
+5. `## 5. 价格带分布（等宽 N 档）`：`#`、价格带、商品数、月销量、销量占比、月销售额；`price_bands` 为空时（#13）先输出 `> ⚠️ 同价样本且总月销量为 0，销量份额无法计算；价格带输出已置空。`，再输出空表头。
 6. `## 6. 价格带波谷候选`：跌幅 ≥ 阈值且最多 5 带；无候选时输出一句「梯度相对平滑」。
 7. 可选 `## 7. 属性交叉表`（仅 `--config-fields attributes`）。
 8. 最后 `## N. Top N 商品` 表：ASIN/标题/价格/月销量/评论/评分/BSR/配送；标题超过 46 字符截为前 43 + `...`。
@@ -254,9 +255,10 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | `normalize_export.py` | **stderr**（`sys.exit("字符串")` 的隐式行为） | 纯文本 `[INPUT_MISSING] ...`，无 JSON | ~~1~~ → **2**（旧实现 1；本批 #1 已实施，见 `99_gap_and_decisions.md`） |
 | `market_metrics.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
 | `opportunity_score.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
-| `market_metrics.py` 未捕获异常（如除零） | stderr | Python traceback | **1** |
+| `market_metrics.py` 未捕获异常（如写盘失败） | stderr | Python traceback | 1（除零已按 #13 消除） |
 
 > 本批有意差异（已实施）：#1 normalize 输入错误 1→2；#4 行级脏数据必须报「第 N 行 + 列名」并 exit 2；#5 NaN/Inf 显式校验、不进入计算。消息文案与去向保持不变，只改退出码与校验严格度。
+> 阶段 2.5 追加 #13：market 同价且 Σ销量=0 转为业务告警（`meta.status=WARNING`、`price_bands=[]`、exit 0），不再 `ZeroDivisionError`。
 
 
 典型输入错误场景与退出码：
@@ -277,7 +279,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 缺三个运行期参数 | opportunity | 2 | stdout 一次列全 |
 | `--target-price ≤0` / `--factory-cost-usd <0` | opportunity | 2 | stdout |
 | JSON 解析失败、items 缺失/为空 | market | 2 | stdout |
-| 全样本总月销量=0 且所有价格相同 | market | 1 | `ZeroDivisionError` traceback（见 §6，本批刻意未改） |
+| 全样本总月销量=0 且所有价格相同 | market | **0** | 业务告警：`meta.status=WARNING`、`price_bands=[]`（#13；旧实现 `ZeroDivisionError` exit 1） |
 
 ### 4.5 输出路由与编码
 
@@ -318,7 +320,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 - 波谷：仅比较相邻档（i≥1）。若 `prev ≤ 0` 或 `cur ≥ prev` 跳过；否则 `drop = (prev−cur)/prev×100`；`drop ≥ threshold` 入选。候选按 `drop` 降序取前 5，再按 `band_index` 升序输出；`trough_candidates_total` = 入选前总数（可 >5），`trough_bands_shown` = 实际输出数。
 - 属性交叉表：仅统计有属性的行；每个不同属性值聚合；同一行同一属性值只计一次（`set(values)`）；`items` 为该属性值覆盖的商品数；`avg_price = price_sum / items`（按商品计，不按销量加权）；按 `monthly_sales` 降序；`sales_share_pct` 分母为**全样本** S。
 - Top 商品：按 `monthly_sales` 降序取前 `top`；`reviews`/`bsr` 用 `int`（截断），`rating/price/sales/revenue` 保留 2 位。
-- 缺失/边界：总销量为 0 时除 `price_bands` 同价分支外均有保护；负数价格/销量不校验；重复 ASIN 不去重。
+- 缺失/边界：总销量为 0 时所有份额按 0.0 输出；同价且总销量为 0 时 `price_bands=[]` 并带 `meta.status="WARNING"`（#13），不再除零；负数价格/销量不校验；重复 ASIN 不去重。
 
 ### 5.3 `opportunity_score.py`
 
@@ -358,7 +360,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 1 | 字符串异常导致退出码 1 | `normalize_export.py` 任意输入错误 | 旧实现 `sys.exit("[INPUT_MISSING] ...")`：消息写 **stderr**、退出码 **1**；`--json` 不产生 JSON。本批已改为显式 `SystemExit(2)`，文案不变（#1） | 已实施：见 #1 |
 | 2 | 缺文件/空 CSV/缺列/坏数字均退出 1 | normalize | 旧实测四种场景均 EXIT=1、stdout 为空；新实现同类场景 EXIT=2，stderr 文案逐字保持 | 已实施：见 #1 |
 | 3 | 错误输出走 stdout | market / opportunity | `[INPUT_MISSING]` 打到 stdout；无 JSON 错误对象 | 保持旧样（本批不改） |
-| 4 | 全样本 0 销量 + 全部同价 → 崩溃 | `market_metrics.py`，`max(price)==min(price)` 且 `Σmonthly_sales==0` | `ZeroDivisionError` traceback（price_bands 同价分支无保护），EXIT=**1** | 本批刻意保真未加保护，属规格缺口（见 §8） |
+| 4 | ~~全样本 0 销量 + 全部同价 → 崩溃~~ | `market_metrics.py`，`max(price)==min(price)` 且 `Σmonthly_sales==0` | **已实施 #13**：`price_bands=[]`、`meta.status="WARNING"`、`meta.warnings` 一条，EXIT=**0**，无 traceback | 已解决 |
 | 5 | 0 销量 + 不同价 | 同上但价格不同 | EXIT=0，所有份额 0.0，HHI 0.0，CR3 0.0 | 保留 |
 | 6 | `--json` 覆盖 `--format` | `--format both --json` | 只输出 JSON，Markdown 被丢弃 | 保留（文档写明优先级） |
 | 7 | 错误一次性聚合 | market 字段校验、opportunity 行解析 | 汇总所有行错误后一次退出；不是首错即停 | 保留，便于修数据 |
@@ -387,7 +389,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 行级非数字 / NaN / Inf | 2（首错即停） | 2（聚合） | 2（聚合） |
 | argparse 参数非法 | 2 | 2 | 2 |
 | 业务参数越界（bins/top/target/cost） | — | 2 | 2 |
-| 运行期未捕获异常 | 1（如写文件失败，未实测） | 1（除零） | 未见已知路径 |
+| 运行期未捕获异常 | 1（如写文件失败，未实测） | 1（写盘失败等；除零已消除） | 未见已知路径 |
 
 ### 6.2 新实现必须保持的行为清单
 
@@ -458,7 +460,7 @@ python Agents/01_Selection_Agent/scripts/opportunity_score.py --file Agents/01_S
 | `market_metrics.py <norm.json> --bins 0` | EXIT=2；stdout `--bins 必须 ≥ 1` |
 | `market_metrics.py <norm.json> --config-fields attributes` | EXIT=2；stdout 提示无 attributes |
 | `market_metrics.py <缺 fulfillment 的 1 条 JSON>` | EXIT=2；stdout `B0X 缺少/非法字段：fulfillment` |
-| `market_metrics.py <同价且总销量 0 的 JSON>` | EXIT=1；stderr `ZeroDivisionError` traceback |
+| `market_metrics.py <同价且总销量 0 的 JSON>` | EXIT=0；`meta.status=WARNING`、`price_bands=[]`（#13；旧实现 EXIT=1 + traceback） |
 | `opportunity_score.py --file <不存在>` | EXIT=2；stdout `找不到输入文件` |
 | `opportunity_score.py --file <示例> --factory-cost-usd 5.32 --target-price 0` | EXIT=2；stdout `--target-price 必须 > 0` |
 | `opportunity_score.py --file <示例> --factory-cost-usd -1 --target-price 29.99` | EXIT=2；stdout `--factory-cost-usd 不能为负` |
@@ -522,5 +524,5 @@ B0TEST0001,29.99,1000,260,3.9,TestSeller
 | 空行 | 真空白行 | 跳过，exit 0 | 同（`if not row: continue`） |
 | 默认输出名 | `myfile.tar.csv` | `myfile.tar.normalized.json` | 同 |
 | market 字段不全 | 缺 `fulfillment` | stdout `以下商品字段不完整，已停止计算（不猜测）：\n  - B0X 缺少/非法字段：fulfillment`，exit 2 | 同 |
-| market 同价 + 0 销量 | 单档价格、Σ销量=0 | `ZeroDivisionError` traceback，exit 1 | 刻意保留（清单外不得改） |
+| market 同价 + 0 销量 | 单档价格、Σ销量=0 | `ZeroDivisionError` traceback，exit 1 | #13：`status=WARNING` + `price_bands=[]`，exit 0（测试 `tests/test_selection.py::BaselineTests::test_market_metrics_same_price_zero_sales_warns`） |
 | opportunity 基准 | 28 行示例 | Go 10 / Watch 15 / No-Go 3；Top1 `B0GREENTECH 80.5`；价带 23.24–27.74（中位 25.49） | 同（JSON 与 Markdown 逐字一致） |

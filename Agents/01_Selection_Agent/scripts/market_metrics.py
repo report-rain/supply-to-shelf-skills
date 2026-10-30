@@ -42,6 +42,9 @@ TROUGH_NOTE = (
     "是差异化切入或重新定价的候选位置，不等于可以定价的位置。"
 )
 FOOTER = "> 数据为第三方估算/类目导出，下单前用品牌数与真实评论门槛二次核对；价格带是观察结果，不是该定这个价。"
+SAME_PRICE_ZERO_SALES_WARNING = (
+    "同价样本且总月销量为 0，销量份额无法计算；价格带输出已置空。"
+)
 
 
 def fail(message):
@@ -223,6 +226,9 @@ def price_bands(rows, bins):
 
     if high == low:
         members = rows
+        # 同价且总销量为 0：份额无法计算，价带置空并转为业务告警（#13）
+        if total_sales == 0:
+            return []
         return [
             {
                 "index": 1,
@@ -338,15 +344,20 @@ def compute(rows, bins, top, want_attributes, threshold):
     market = market_block(rows)
     bands = price_bands(rows, bins)
     shown, total_troughs = troughs(bands, threshold)
+    meta = {
+        "generated_by": "market_metrics.py",
+        "currency": "USD",
+        "bins": bins,
+        "trough_threshold_pct": threshold,
+        "trough_candidates_total": total_troughs,
+        "trough_bands_shown": len(shown),
+    }
+    same_price = max(row["price"] for row in rows) == min(row["price"] for row in rows)
+    if same_price and total_sales == 0:
+        meta["status"] = "WARNING"
+        meta["warnings"] = [SAME_PRICE_ZERO_SALES_WARNING]
     payload = {
-        "meta": {
-            "generated_by": "market_metrics.py",
-            "currency": "USD",
-            "bins": bins,
-            "trough_threshold_pct": threshold,
-            "trough_candidates_total": total_troughs,
-            "trough_bands_shown": len(shown),
-        },
+        "meta": meta,
         "market": market,
         "brand_concentration": concentration(rows, "brand", total_sales),
         "seller_concentration": concentration(rows, "seller", total_sales),
@@ -435,6 +446,9 @@ def render_report(payload, bins, top, threshold):
 
     lines.append("## 5. 价格带分布（等宽 {} 档）".format(bins))
     lines.append("")
+    if not payload["price_bands"]:
+        lines.append("> ⚠️ " + SAME_PRICE_ZERO_SALES_WARNING)
+        lines.append("")
     lines.append("| # | 价格带 | 商品数 | 月销量 | 销量占比 | 月销售额 |")
     lines.append("|---|---|---|---|---|---|")
     for band in payload["price_bands"]:

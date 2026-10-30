@@ -97,6 +97,22 @@ def emit_error(status, message, as_json):
     raise SystemExit(2)
 
 
+def video_number(spec, field, as_json, integer=False):
+    """取视频数值字段；bool / 非数字 → INPUT_ERROR exit 2（#12）。"""
+    value = spec[field]
+    try:
+        if isinstance(value, bool):
+            raise ValueError("bool")
+        return int(value) if integer else float(value)
+    except (TypeError, ValueError):
+        emit_error(
+            "INPUT_ERROR",
+            "[INPUT_ERROR] 视频数值字段非法：{}={!r}（必须为数字）".format(field, value),
+            as_json,
+        )
+        raise AssertionError("unreachable")
+
+
 def add(findings, level, code, field, message):
     findings.append({"level": level, "code": code, "field": field, "message": message})
 
@@ -633,16 +649,23 @@ def run_video(args):
             spec = json.load(handle)
     except json.JSONDecodeError as exc:
         emit_error(
-            "INPUT_MISSING",
+            "INPUT_ERROR",
             "[INPUT_ERROR] JSON 解析失败: {}".format(exc),
             args.json,
         )
         raise AssertionError("unreachable")
+    except UnicodeDecodeError:
+        emit_error(
+            "INPUT_ERROR",
+            "[INPUT_ERROR] 文件编码不可读（需 UTF-8）: {}".format(args.spec),
+            args.json,
+        )
+        raise AssertionError("unreachable")
     except OSError:
-        emit_error("INPUT_MISSING", "[INPUT_MISSING] 找不到文件: {}".format(args.spec), args.json)
+        emit_error("INPUT_ERROR", "[INPUT_ERROR] 文件无法读取: {}".format(args.spec), args.json)
 
     if not isinstance(spec, dict):
-        emit_error("INPUT_MISSING", "[INPUT_MISSING] 顶层必须是 JSON 对象", args.json)
+        emit_error("INPUT_ERROR", "[INPUT_ERROR] 顶层必须是 JSON 对象", args.json)
 
     missing = [
         field
@@ -656,14 +679,19 @@ def run_video(args):
             args.json,
         )
 
-    if int(spec["width"]) <= 0 or int(spec["height"]) <= 0:
+    width = video_number(spec, "width", args.json, integer=True)
+    height = video_number(spec, "height", args.json, integer=True)
+    duration = video_number(spec, "duration_sec", args.json)
+    fps = video_number(spec, "fps", args.json)
+    if width <= 0 or height <= 0:
         emit_error(
             "INPUT_ERROR",
             "[INPUT_ERROR] 视频尺寸非法：{}×{}（宽高必须为正数）".format(spec["width"], spec["height"]),
             args.json,
         )
 
-    findings = check_video(spec, args.platform)
+    normalized = dict(spec, width=width, height=height, duration_sec=duration, fps=fps)
+    findings = check_video(normalized, args.platform)
     counts, verdict = summarize(findings)
     payload = {
         "mode": "video",
@@ -690,6 +718,15 @@ def run_video(args):
 
 def run_image(args):
     if args.fix:
+        same_source = os.path.normcase(os.path.abspath(args.fix)) == os.path.normcase(
+            os.path.abspath(args.image)
+        )
+        if same_source:
+            emit_error(
+                "INPUT_ERROR",
+                "[INPUT_ERROR] --fix 输出路径不能与原图相同，请改用其他输出路径: {}".format(args.fix),
+                args.json,
+            )
         if not PILLOW_OK:
             emit_error(
                 "INPUT_MISSING",

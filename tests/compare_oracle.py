@@ -10,7 +10,7 @@
 - stdout 若两侧都能解析为 JSON，则按 JSON 语义比较（忽略 key 顺序）；
 - 否则按文本逐行比较（统一换行、去掉首尾空白）；
 - 落盘产物（如 normalized.json）按 JSON 语义比较；
-- 差异只有在 `intended`（#1–#5）里登记过才算 INTENDED_DIFF，否则记为 REGRESSION，
+- 差异只有在 `intended`（#1–#14）里登记过才算 INTENDED_DIFF，否则记为 REGRESSION，
   进程以退出码 1 结束，提示修复而不是接受。
 """
 
@@ -33,6 +33,14 @@ INTENDED = {
     "#3": "05 损坏图/0 尺寸/不可解码 → 明确状态码 + exit 2",
     "#4": "01 单行脏数据报行号列名并 exit 2",
     "#5": "01 NaN/Inf 显式校验",
+    "#6": "04 解码失败明确报错 exit 2",
+    "#7": "04 A+ 模块顺序校验",
+    "#9": "07 新增 --fail-on-critical（默认关）",
+    "#10": "08 --carrying-rate-pct 0–100 校验",
+    "#11": "08 文档 4995/4335 以实算为准",
+    "#12": "05 视频输入异常统一 INPUT_ERROR + exit 2，无 traceback",
+    "#13": "01 market_metrics 同价零销量转 WARNING，价带置空",
+    "#14": "05 --fix 指向原图时拒绝覆盖 exit 2",
 }
 
 
@@ -130,6 +138,7 @@ def write_video_specs(work):
         "spec_lowres.json": dict(base, width=640, height=1136),
         "spec_noflags.json": dict(base, has_subtitles=False, first_frame_product=False),
         "spec_zero_h.json": dict(base, height=0),
+        "spec_badnum.json": dict(base, width="abc"),
         "spec_bad.json": {"width": 1080},
         "spec_field.json": dict(base, aspect_ratio="0.75"),
     }
@@ -258,6 +267,29 @@ CASES = [
         },
     },
     {
+        "id": "01-market_metrics 同价零销量",
+        "script": SELECTION + "/scripts/market_metrics.py",
+        "args": ["zero_sales.json", "--json"],
+        "make": {
+            "zero_sales.json": json.dumps(
+                {
+                    "meta": {"item_count": 2},
+                    "items": [
+                        {"asin": "B0A", "title": "T", "brand": "B", "seller": "S", "price": 10.0,
+                         "monthly_sales": 0, "monthly_revenue": 0, "reviews": 0, "rating": 4.0,
+                         "bsr": 1, "fulfillment": "FBA", "attributes": []},
+                        {"asin": "B0B", "title": "U", "brand": "B", "seller": "S", "price": 10.0,
+                         "monthly_sales": 0, "monthly_revenue": 0, "reviews": 0, "rating": 4.0,
+                         "bsr": 2, "fulfillment": "FBA", "attributes": []},
+                    ],
+                    "warnings": [],
+                },
+                ensure_ascii=False,
+            )
+        },
+        "intended": ["#13"],
+    },
+    {
         "id": "05 视频 TikTok 规范",
         "script": CREATIVE + "/scripts/asset_check.py",
         "args": ["--spec", "spec_base.json", "--platform", "tiktok_us", "--json"],
@@ -292,6 +324,27 @@ CASES = [
         "script": CREATIVE + "/scripts/asset_check.py",
         "args": ["--spec", "spec_bad.json", "--platform", "tiktok_us", "--json"],
         "make_video": True,
+    },
+    {
+        "id": "05 视频 数值字段非法",
+        "script": CREATIVE + "/scripts/asset_check.py",
+        "args": ["--spec", "spec_badnum.json", "--platform", "tiktok_us", "--json"],
+        "make_video": True,
+        "intended": ["#12"],
+    },
+    {
+        "id": "05 视频 JSON 损坏",
+        "script": CREATIVE + "/scripts/asset_check.py",
+        "args": ["--spec", "spec_syntax.json", "--platform", "tiktok_us", "--json"],
+        "make_video": True,
+        "intended": ["#12"],
+    },
+    {
+        "id": "05 视频 编码不可读",
+        "script": CREATIVE + "/scripts/asset_check.py",
+        "args": ["--spec", "spec_gbk.json", "--platform", "tiktok_us", "--json"],
+        "make_bytes": {"spec_gbk.json": b'{"width":1080,"height":1920}\xff\xfe'},
+        "intended": ["#12"],
     },
     {
         "id": "05 视频 0 高度",
@@ -357,6 +410,13 @@ CASES = [
         "make_image": True,
     },
     {
+        "id": "05 --fix 指向原图",
+        "script": CREATIVE + "/scripts/asset_check.py",
+        "args": ["img_amz.png", "--platform", "amazon_us", "--fix", "img_amz.png", "--json"],
+        "make_image": True,
+        "intended": ["#14"],
+    },
+    {
         "id": "05 缺入参",
         "script": CREATIVE + "/scripts/asset_check.py",
         "args": ["--platform", "amazon_us", "--json"],
@@ -379,6 +439,9 @@ def prepare(case, repo, work):
         shutil.copyfile(os.path.join(repo, source), target)
     for rel, content in case.get("make", {}).items():
         with open(os.path.join(work, rel), "w", encoding="utf-8") as handle:
+            handle.write(content)
+    for rel, content in case.get("make_bytes", {}).items():
+        with open(os.path.join(work, rel), "wb") as handle:
             handle.write(content)
     if case.get("pre_edit"):
         rel, old, new = case["pre_edit"]

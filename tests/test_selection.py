@@ -178,6 +178,35 @@ class BaselineTests(SelectionTestBase):
         self.assertIn("以下商品字段不完整，已停止计算（不猜测）", result.stdout)
         self.assertIn("B0X 缺少/非法字段：fulfillment", result.stdout)
 
+    def test_market_metrics_same_price_zero_sales_warns(self):
+        """#13：同价且总销量 0 不再除零崩溃，转业务告警且价带置空。"""
+        data = self.tmp / "zero.json"
+        data.write_text(
+            json.dumps(
+                {
+                    "meta": {"item_count": 2},
+                    "items": [
+                        {"asin": "B0A", "title": "T", "brand": "B", "seller": "S", "price": 10.0,
+                         "monthly_sales": 0, "monthly_revenue": 0, "reviews": 0, "rating": 4.0,
+                         "bsr": 1, "fulfillment": "FBA", "attributes": []},
+                        {"asin": "B0B", "title": "U", "brand": "B", "seller": "S", "price": 10.0,
+                         "monthly_sales": 0, "monthly_revenue": 0, "reviews": 0, "rating": 4.0,
+                         "bsr": 2, "fulfillment": "FBA", "attributes": []},
+                    ],
+                    "warnings": [],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        result = run(MARKET, [str(data), "--json"])
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, "")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["meta"]["status"], "WARNING")
+        self.assertEqual(payload["price_bands"], [])
+        self.assertIn("同价样本且总月销量为 0", payload["meta"]["warnings"][0])
+
     def test_opportunity_score_baseline(self):
         target = self.tmp / "sample_category_export.csv"
         target.write_text(SAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
