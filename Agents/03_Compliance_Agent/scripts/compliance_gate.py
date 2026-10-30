@@ -536,7 +536,7 @@ def render_human(payload, rules):
             counts["unknown"], counts["blocking_missing"], counts["advisory"],
         ),
     ]
-    if counts["ip_blocked"] and not counts["blocking_missing"]:
+    if counts["ip_blocked"]:
         lines.append(
             "阻断来源：IP 初筛识别到 {} 项冲突（详见下方 IP 初筛）".format(
                 counts["ip_blocked"]

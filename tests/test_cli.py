@@ -228,6 +228,18 @@ class ComplianceGateTests(unittest.TestCase):
         self.assertEqual(payload["status"], "BLOCKED")
         self.assertGreater(payload["counts"]["ip_blocked"], 0)
 
+    def test_blocking_source_line_when_both_causes(self):
+        result = run(
+            GATE,
+            ["--category", "office", "--attr", "medical_claim",
+             "--marketplace", "amazon_us", "--trademark", "conflict"],
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("阻断级缺失 2", result.stdout)
+        self.assertIn(
+            "阻断来源：IP 初筛识别到 2 项冲突（详见下方 IP 初筛）", result.stdout
+        )
+
     def test_unknown_category_exit_3_valid_json(self):
         result, payload = run_json(
             GATE,
