@@ -24,7 +24,7 @@
 - 范围：`listing_lint.py`、`claim_scan.py`、`review_ops.py`；有意差异 #6、#7、#9。
 - 测试：111 条通过。
 - 对拍：SAME 54 / INTENDED_DIFF 17 / REGRESSION 0（04：SAME 16 / INTENDED 3；07：SAME 16 / INTENDED 1）。
-- 状态：完成（COMMIT_PLACEHOLDER）。
+- 状态：完成（`613dcca`）。
 
 ## 批次 4：06 Ads + 08 Fulfillment
 - 范围：`ads_metrics.py`、`fulfillment_plan.py`；有意差异 #10、#11。
