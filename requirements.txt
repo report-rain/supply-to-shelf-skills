@@ -1,0 +1,10 @@
+# 运行期依赖：01–08 全部脚本仅使用 Python 3.10+ 标准库，本文件无需安装即可运行。
+#
+# 可选依赖（仅 05_Creative_Agent/scripts/asset_check.py 使用）：
+#   Pillow  — 图片像素项（尺寸/比例/白底/主体占比）与 --fix 需要；
+#             未安装时脚本输出 [WARN] PILLOW_MISSING 并降级为文件级检查，不会崩溃。
+#
+# 安装方式（可选）：
+#   pip install "Pillow>=9.0"
+#
+# 说明：Pillow 不在默认依赖中，故此处不写生效行，避免把所有 Agent 的部署都拖上图像库。
