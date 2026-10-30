@@ -156,7 +156,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 | `moq` | 件，int | 500 | 按 float 解析后 `int()` 截断 |
 | `customs_fee_per_unit` | USD | 0.18 | |
 | `fba_tier` | 4 档枚举 | 自动 | 未知档 → 该行失败 |
-| `season` | `auto`/`nonpeak`/`peak`（代码不校验枚举） | 自动 | 非法值走 auto 分支 |
+| `season` | `auto`/`nonpeak`/`peak`（代码不校验枚举） | 自动 | 非法值走 auto 分支（与 CLI `--season` 不同，见 §6.1） |
 | `ship_date` | `YYYY-MM-DD` | 运行日 | 非法值见 §6 |
 | `no_fuel_surcharge` | 任意非空字符串 | 空=计附加费 | **非空即视为 true**，`"false"`/`"0"` 也会关闭附加费 |
 
@@ -205,7 +205,8 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 ```
 {
  "inputs": {factory_rmb:num2, fx_cny_usd:float, freight_per_unit_usd:num2,
-            customs_fee_per_unit_usd:num2, duty_pct:num2, duty_source:"hts"|"explicit",
+            customs_fee_per_unit_usd:num2, customs_fee_placeholder:bool,
+            duty_pct:num2, duty_source:"hts"|"explicit",
             hts:str|null, mfn_pct:num|null, section301_pct:num|null,
             platform:str, category:str|null, category_key:str|null,
             category_source:"explicit"|"alias"|"platform_path"|"assumed_default",
@@ -294,6 +295,49 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 | matrix 行失败 | 2 | 整表继续，失败行汇总（见上） |
 | `us_fees.json` 缺 `fba.tiers` | 3 | `missing=["us_fees.json:fba.tiers"]` |
 | 配置文件不存在/无法解析 | 2 | `missing=[配置路径]` |
+
+### 4.5 矩阵行级失败的 `missing` 聚合（probe，2026-10-30）
+
+`failed_rows[].missing` 只承载「缺哪个输入项才能修好这一行」的**字段名**；行内数值解析失败、必填为空、口径两空属于「值坏了/没值」，没有可直接补的字段名，故为 `[]`。顶层 `missing` = 各行 `missing` 的并集去重后排序。
+
+| 失败类型 | 触发示例（第 N 行） | `failed_rows[].missing` | 是否进入顶层 `missing` |
+|---|---|---|---|
+| 数值不可解析 | `weight_g=abc` | `[]` | 否 |
+| 必填数值为空 | `price` 为空 | `[]` | 否 |
+| `sku` 为空 | 首列为空 | `[]` | 否 |
+| 关税口径两空 | `duty_pct` 与 `hts` 均为空 | `[]` | 否 |
+| FBA 口径三空 | `fba_fee`/`weight_g`/`weight_oz` 均空 | `[]` | 否 |
+| 类目缺失（未开兜底） | 无 `category_key`/`category` | `["category_key"]` | 是 |
+| 平台非法 | `platform=bogus` | `["platform"]` | 是 |
+| FBA 档未知 | `fba_tier=bogus` | `["fba_tier"]` | 是 |
+| 重量超出档上限 | 20000 g → 705.48 oz | `["weight_oz"]` | 是 |
+
+判定依据：`missing` 由抛错调用点传入——matrix 的行内前置校验（sku/数字/必填/口径空）统一传 `missing=[]`；`compute_sku` 中的配置/枚举/边界错误沿用其单 SKU 形态的 `missing`（`category_key`/`platform`/`fba_tier`/`weight_oz` 等）。
+
+探测（旧仓库，2026-10-30）：
+
+```powershell
+python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行坏样本.csv> --fx 0.14 --json
+```
+
+观察：EXIT=2；9 行全部失败；逐行 `missing` 依次为 `[]`、`[category_key]`、`[platform]`、`[fba_tier]`、`[]`、`[]`、`[]`、`[weight_oz]`、`[]`；顶层 `missing=["category_key","fba_tier","platform","weight_oz"]`。
+
+### 4.6 `inputs.customs_fee_placeholder`（字段存在性语义，probe，2026-10-30）
+
+- **恒存在**：`calc` 成功 JSON 的 `inputs`、`matrix` 成功行的 `inputs` 均包含该布尔字段。
+- 未显式传入（`calc` 无 `--customs-fee-per-unit`；CSV `customs_fee_per_unit` 单元格为空）→ `true`，且 `notes` 追加 `[WARN] 未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算`。
+- 显式传入（含显式传 `0.18` 本身）→ `false`，不追加该 `[WARN]`。
+- `[WARN]` note 的位置：`calc` 中位于默认值类 note 第 5 条（`index 4`，即 ads/returns/target/moq 之后、platform 之前）；`matrix` 行里 ads/returns/target/moq 默认 note 被抑制，该条成为 `notes[0]`（队首），其后才是 platform/旺季/燃油/分段近似。
+- 该字段与 `[WARN]` 前缀是重写新增，旧实现既无该键也无该前缀、只有无前缀的默认 note（`notes[4]`）；对应 `99_gap_and_decisions.md` 有意差异 #8，既有字段语义不变。
+
+探测（2026-10-30）：
+
+| 命令 | 旧结果 | 新结果 |
+|---|---|---|
+| `calc ...`（不传 customs） | `notes[4]="未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算"`；`inputs` 无 `customs_fee_placeholder` | `inputs.customs_fee_placeholder=true`；`notes[4]` 带 `[WARN] ` 前缀 |
+| `calc ... --customs-fee-per-unit 0.5` | 无该 note；无该键 | `=false`；无 `[WARN]` |
+| `matrix`（行 customs 空） | 行 `notes[0]="未提供 --platform，按 amazon_us 计算"`；无该键 | `=true`；`notes[0]` 为 `[WARN] …报关杂费…` |
+| `matrix`（行 customs=0.5） | 同上；无该键 | `=false`；`notes[0]` 恢复为 platform note |
 
 ## 5. 计算规则
 
@@ -413,6 +457,33 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 | 23 | 输出舍入 | 任意金额 | Python `round` 银行家舍入 + 浮点误差；例如 4.4985→4.5、5.6097→5.61 | 明确舍入口径并加对拍断言 |
 | 24 | 配置解析失败统一 2 | JSON 损坏/文件缺失 | `fail(..., missing=[路径])`，EXIT=2（不是 3） | 与码表统一 |
 
+### 6.1 现状行为补充（probe，2026-10-30）
+
+**`--season` 非法值的两条路径**
+
+| 路径 | 形态 | 行为 | 退出码 |
+|---|---|---|---|
+| CLI 参数 | `calc ... --season bogus` | argparse `choices=["auto","nonpeak","peak"]` 直接拒绝；`--json` 时 stdout 为 `{"status":"INPUT_MISSING","missing":[],"message":"参数错误：argument --season: invalid choice: 'bogus' (choose from 'auto', 'nonpeak', 'peak')"}`，usage 写 stderr | 2 |
+| CSV `season` 列 | `matrix --file ...`，行值 `fubar` / `peak2` | **不校验枚举**：只有字面量 `peak`/`nonpeak` 被采用，其余一律置空 → 走 auto，按 `ship_date`（缺省运行日）判定季节；该行正常计算 | 0 |
+
+CSV 为何是 auto：matrix 本身没有 `--season` 选项，行级解析只认两个合法字面量，其他值等同「未指定」，于是回落到日期判定。探测结果：`SEA-BOGUS → fba_season=peak、fba_fee_usd=5.93`，notes 含「按 2026-10-30 落在 2026-10-15 至 2027-01-14 旺季窗口计算」；`SEA-NONPEAK → nonpeak、5.61`，notes 含「显式指定 --season nonpeak」。
+
+**非法日期 + 显式 season → 退出 1**（非 2）
+
+```powershell
+python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py calc --factory-rmb 38 --fx 0.14 --freight-per-unit 1.6 --hts 8509.40 --category-key small_appliances --weight-g 620 --price 29.99 --season peak --ship-date 2026-13-01 --json
+```
+
+观察：EXIT=**1**，stdout 为空，stderr 是未捕获 `ValueError: month must be in 1..12` 的 traceback（显式 season 时仍要解析 ship-date 判燃油附加费）。对照：不传显式 season 的同命令 EXIT=2、`missing=["ship_date"]`。
+
+**无子命令 → help 写 stdout**
+
+```powershell
+python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py
+```
+
+观察：EXIT=2；usage/help 全部写 **stdout**（首行 `usage: landed_cost.py [-h] [--list-platforms] [--list-fba-tiers]`）；`缺少子命令：calc 或 matrix` 写 stderr。
+
 ## 7. 对拍基准（可复现）
 
 工作目录：仓库根；Python 3.12.0；运行日 2026-10-30（未给 ship-date 时按此）。以下命令均实测。
@@ -501,7 +572,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file Agents/
 3. **HTS 前缀匹配的反向包含**：除 `8509` 外，短编码（如 `85`）、带点尾（如 `8509.`）、`8509.40.00.15` 的匹配结果未逐一实测；已知 `8509` 会选 8509.90。
 4. **类目路径同长度歧义**：代码会报错，但当前配置未构造出实测样本，错误文案与 `missing` 已按代码记录。
 5. **旧结构 referral 分支**：`referral_pct + tier_threshold_usd + above_threshold_pct` 的兼容逻辑当前配置不触发，未实测。
-6. **`season` 列的非法值**：matrix 不校验枚举，`"foo"` 会走 auto 分支并可能按 ship-date 判定；未实测。
+6. ~~**`season` 列的非法值**：matrix 不校验枚举，`"foo"` 会走 auto 分支并可能按 ship-date 判定；未实测。~~ 已实测（2026-10-30）：`fubar`/`peak2` 均回落 auto，见 §6.1。
 7. **`no_fuel_surcharge` 的合法取值集合**：当前是「非空即真」，新实现需产品确认布尔表示（`true/false`、`1/0`、`Y/N`）。
 8. **`--fba-fee` + 极小/负值**：不校验，可能产生负 FBA 费；未实测。
 9. **`--weight-g`/`--weight-oz` 为负或 0**：可能落入最小档或异常；未实测。

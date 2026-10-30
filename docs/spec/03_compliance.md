@@ -193,7 +193,7 @@
 
 ### 4.2 人类可读（无 `--json`，全部 stdout）
 
-标题 `=== 美国市场准入合规初筛 ===`；依次为：类目/市场/属性行、已有报告行、空行、`结论：<中文结论>`、统计行、可选「阻断来源」行、`必需文件清单`（每项 `[状态][标签] 名称` + `主管…｜触发…`）、`缺失 / 待确认（按优先级）` 编号列表、`IP 初筛（不是法律意见…）` 每项状态/说明/动作、`输入提示`、`风险提示`、`口径`、`退出码：0=PASS 1=CONDITIONAL 2=BLOCKED 3=输入错误（当前 N）`。状态中文固定为 `已具备/缺失/待确认`；标签固定为 `平台/阻断/补办`。
+标题 `=== 美国市场准入合规初筛 ===`；依次为：类目/市场/属性行、已有报告行、空行、`结论：<中文结论>`、统计行、可选「阻断来源」行、`必需文件清单`（每项 `[状态][标签] 名称` + `主管…｜触发…`）、`缺失 / 待确认（按优先级）` 编号列表、`IP 初筛（不是法律意见…）` 每项状态/说明/动作、`输入提示`、`风险提示`、`口径`、`退出码：0=PASS 1=CONDITIONAL 2=BLOCKED 3=输入错误（当前 N）`。状态中文固定为 `已具备/缺失/待确认`；标签固定为 `平台/阻断/补办`。行级条件（阻断来源触发、等级词、空段省略）见 §4.5。
 
 ### 4.3 失败契约
 
@@ -219,6 +219,63 @@
 | 未知属性、参数枚举非法、bool 非法 | 3 | 同上 | `[INPUT_MISSING]` |
 | 规则/映射文件缺失或 JSON 坏 | 3 | 同上 | `[INPUT_MISSING]` |
 | `--list-categories` / `--list-attributes` | 0 | 列表文本 | 无 |
+
+### 4.5 人类输出细节（probe，2026-10-30）
+
+**「阻断来源」行**
+
+- 文案：`阻断来源：IP 初筛识别到 {ip_blocked} 项冲突（详见下方 IP 初筛）`，紧跟统计行之后。
+- **触发条件（实测）：只要 `ip_blocked > 0` 就输出，与 `blocking_missing` 是否非空无关。**
+
+| 场景 | blocking_missing | ip_blocked | 是否输出 | 实测 |
+|---|---|---|---|---|
+| 仅 IP 冲突（`office` + `food_contact` 文件全齐 + `--trademark conflict`） | 0 | 2 | 是 | 统计行后为「阻断来源：…2 项冲突」 |
+| 仅阻断级文档缺失（`office` + `medical_claim`，无 `--have`） | 2 | 0 | 否 | 统计行后直接进入「缺失 / 待确认」 |
+| 两者同时存在（`medical_claim` + `--trademark conflict`） | 2 | 2 | **是** | 统计行后仍输出「阻断来源：…2 项冲突」 |
+| IP 冲突 + 非阻断文档缺失（`food_contact` 无 `--have` + conflict） | 0 | 2 | 是 | 同第一行 |
+
+理由：该行只说明「BLOCKED 的 IP 侧来源」；文档侧的阻断级缺失已在下方 `缺失 / 待确认` 列表逐条标注 `阻断级`，两者是不同维度，不应因文档阻断而隐藏 IP 来源。
+
+> 注：该条件曾一度被实现为 `ip_blocked > 0 且 blocking_missing == 0`，已按本表修正，见 §9。
+
+**缺失项等级词与「当前状态」**
+
+`缺失 / 待确认（按优先级）：` 每项格式：`  {序号}. {name}（{等级}，当前 {状态}）`；序号从 1 起，顺序与 `required_docs` 一致（不按等级重排）。
+
+| 文档 `blocking` | 等级词 |
+|---|---|
+| `true` | `阻断级` |
+| `false`（含缺省） | `可补办` |
+
+`当前 {状态}`：`缺失`（status=missing）、`待确认`（status=unknown）。现状规则库中 `default_status=unknown` 只出现在 4 个 advisory 文档，而 advisory 不进入 `missing` 列表，因此实际只会出现 `当前 缺失`；`待确认` 分支保留但当前不可达。
+
+实测（`office` + `medical_claim`，无 `--have`）：
+
+```
+缺失 / 待确认（按优先级）：
+  1. 消费品安全合规自证（CPSA）（可补办，当前 缺失）
+  2. 加州 Prop 65 警告标签或暴露评估（可补办，当前 缺失）
+  3. FDA 器械分类与 510(k) / 豁免确认（阻断级，当前 缺失）
+  4. FTC 健康 / 功效声明实证材料（阻断级，当前 缺失）
+```
+
+**三段（含标题）独立省略**
+
+| 段 | 标题 | 输出条件 | 为空时表现 |
+|---|---|---|---|
+| 缺失列表 | `缺失 / 待确认（按优先级）：` | `missing` 非空 | 整段省略：连标题、前置空行都不输出 |
+| 输入提示 | `输入提示：` | `input_warnings` 非空 | 整段省略 |
+| 风险提示 | `风险提示：` | 恒输出（至少含 `global_risk_notes` 与 IP 提示） | — |
+
+实测对照：
+
+| 用例 | 缺失段 | 输入提示段 |
+|---|---|---|
+| PASS（12 份齐全 + `--trademark none` + `--patent-search-done true`） | 省略 | 省略 |
+| CONDITIONAL（`office` + `food_contact`，无 `--have`，未传 trademark/patent） | 输出（1 项，`可补办`） | 输出（2 条） |
+| BLOCKED（`office` + `medical_claim`，未传 trademark/patent） | 输出（4 项：2 `可补办` + 2 `阻断级`） | 输出（2 条） |
+
+输入提示两条固定文案（仅字段缺失时出现）：`[INPUT_MISSING] trademark_status 未提供，按未做商标检索处理。`、`[INPUT_MISSING] patent_search_done 未提供，按未完成检索处理。`
 
 ## 5. 计算规则
 
@@ -359,3 +416,15 @@ python Agents/03_Compliance_Agent/scripts/compliance_gate.py --category small_ap
 - **`--have` 归一化对中文标点/全角字符的边界**：只验证了常见英文缩写与中文报告名，未穷举。
 - **重复属性、`--have` 重复条目的最终字段顺序**：未单独实测。
 - **03 的失败 JSON 是否要求 `missing` 语义**：现状恒为 `[]`，重写时需产品确认是否补字段。
+
+## 9. 探测发现的实现偏差（已裁决：以旧行为为准）
+
+本轮黑盒探测（2026-10-30，`office` + `medical_claim` + `--trademark conflict`）发现新实现一度多加了 `blocking_missing == 0` 守卫。**已确认按旧行为修正**：删除该守卫，`ip_blocked > 0` 即输出「阻断来源」行，与 `blocking_missing` 无关（即 §4.5 表格第三行）。
+
+| 项 | 旧行为（基准） | 曾出现的偏差 | 现状 |
+|---|---|---|---|
+| 「阻断来源」行触发条件 | `ip_blocked > 0` 即输出 | 额外要求 `blocking_missing == 0`，两者同时存在时不输出 | **已对齐旧行为** |
+
+- 实现位置：`Agents/03_Compliance_Agent/scripts/compliance_gate.py` 的 `render_human()`（统计行之后的分支，条件为 `if counts["ip_blocked"]:`）。
+- 测试位置：`tests/test_cli.py::ComplianceGateTests::test_blocking_source_line_when_both_causes`（`office` + `medical_claim` + `--trademark conflict`，断言 `阻断级缺失 2` 且 stdout 含「阻断来源：IP 初筛识别到 2 项冲突」）。
+- 影响面：仅人类可读输出；JSON 与退出码（2）不受影响。
