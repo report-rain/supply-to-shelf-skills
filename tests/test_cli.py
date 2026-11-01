@@ -1,4 +1,4 @@
-"""Behavior tests for the clean-room rewrite (02 landed_cost + 03 compliance_gate).
+"""Behavior tests for 02 landed_cost + 03 compliance_gate.
 
 Each test asserts the observable CLI contract: exit code, JSON structure/values,
 stderr channel and rounding. Run from the repository root:

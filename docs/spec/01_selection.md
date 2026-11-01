@@ -1,4 +1,4 @@
-# 01 Selection Agent — 规格冻结（clean-room 重写基线）
+# 01 Selection Agent — 规格冻结（实现基线）
 
 > 本文只描述**可观察行为**，不复制实现。所有数值来自 2026-10-30 在 Windows / Python 3.12.0 的实跑，或代码中的明确常量。
 > 覆盖脚本：`Agents/01_Selection_Agent/scripts/market_metrics.py`、`normalize_export.py`、`opportunity_score.py`。
@@ -205,7 +205,7 @@ cr3_meaningful:bool, cr10_meaningful:bool, top:[{name, monthly_sales:num(2),
 sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部主体，按销量降序，人类报告只取前 10。
 `review_thresholds` 固定四档顺序：`<50`、`50–99`、`100–499`、`≥500`。
 `price_bands` 的 `label` 为 `$lower–$upper`（两位小数 + 千分位）；**唯一例外**：全样本同价时只有 1 档，`label` 退化为单值 `$price`（如 `$29.99`）。
-同价且 `Σmonthly_sales==0` 时（#13），`price_bands` 为 `[]`，`meta` 额外带 `status:"WARNING"` 与 `warnings:["同价样本且总月销量为 0，销量份额无法计算；价格带输出已置空。"]`，退出码 0。其余情况 `meta` 不含这两个键（保持旧 JSON 形态）。
+同价且 `Σmonthly_sales==0` 时（#13），`price_bands` 为 `[]`，`meta` 额外带 `status:"WARNING"` 与 `warnings:["同价样本且总月销量为 0，销量份额无法计算；价格带输出已置空。"]`，退出码 0。其余情况 `meta` 不含这两个键（保持既有 JSON 形态）。
 
 人类可读（Markdown）结构要点：
 1. 标题 `# 美国站类目市场测算`；头部列出样本数、金额口径、集中度口径（HHI 0–10,000）。
@@ -243,7 +243,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 `rows` 排序：`score` 降序 → `monthly_sales` 降序 → `asin` 升序。
 人类可读结构：`# 美国站选品机会评分`；`## 0. 权重与口径`（目标价、工厂成本、referral、FBA、净利率、verdict 阈值、缺列提示）；`## 1. 逐 ASIN 评分`（12 列：ASIN/标题/价格/月销/评论/评分/需求/竞争/利润/合规/供给/结论，标题超 34 字符截前 31+`...`）；`## 2. 汇总`（结论分布、建议切入价格带、Top3、三条否决理由有序列表）；`## 3. 评分口径`（五维文字说明 + 脚注）。
 
-> **表格列语义（已探测，probe 2026-10-30）**：数据行的「评分」列实际输出的是**五维总分**（`**80.5**` 加粗），原始 `rating` 不入表；表头仍保留 12 列、数据行也是 12 个值，因此列名与内容存在一处错位。新实现按此逐字复刻，不做「修正」。
+> **表格列语义（已探测，probe 2026-10-30）**：数据行的「评分」列实际输出的是**五维总分**（`**80.5**` 加粗），原始 `rating` 不入表；表头仍保留 12 列、数据行也是 12 个值，因此列名与内容存在一处错位。当前实现按此逐字复刻，不做「修正」。
 
 
 ### 4.4 失败契约与退出码（现状）
@@ -252,12 +252,12 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 
 | 脚本 | 错误信息去向 | 格式 | 退出码 |
 |---|---|---|---|
-| `normalize_export.py` | **stderr**（`sys.exit("字符串")` 的隐式行为） | 纯文本 `[INPUT_MISSING] ...`，无 JSON | ~~1~~ → **2**（旧实现 1；本批 #1 已实施，见 `99_gap_and_decisions.md`） |
+| `normalize_export.py` | **stderr**（`sys.exit("字符串")` 的隐式行为） | 纯文本 `[INPUT_MISSING] ...`，无 JSON | ~~1~~ → **2**（基线实现 1；本版本 #1 已实施，见 `99_gap_and_decisions.md`） |
 | `market_metrics.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
 | `opportunity_score.py` | **stdout** | 纯文本 `[INPUT_MISSING] ...` | **2** |
 | `market_metrics.py` 未捕获异常（如写盘失败） | stderr | Python traceback | 1（除零已按 #13 消除） |
 
-> 本批有意差异（已实施）：#1 normalize 输入错误 1→2；#4 行级脏数据必须报「第 N 行 + 列名」并 exit 2；#5 NaN/Inf 显式校验、不进入计算。消息文案与去向保持不变，只改退出码与校验严格度。
+> 本版本有意差异（已实施）：#1 normalize 输入错误 1→2；#4 行级脏数据必须报「第 N 行 + 列名」并 exit 2；#5 NaN/Inf 显式校验、不进入计算。消息文案与去向保持不变，只改退出码与校验严格度。
 > 阶段 2.5 追加 #13：market 同价且 Σ销量=0 转为业务告警（`meta.status=WARNING`、`price_bands=[]`、exit 0），不再 `ZeroDivisionError`。
 
 
@@ -279,7 +279,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 缺三个运行期参数 | opportunity | 2 | stdout 一次列全 |
 | `--target-price ≤0` / `--factory-cost-usd <0` | opportunity | 2 | stdout |
 | JSON 解析失败、items 缺失/为空 | market | 2 | stdout |
-| 全样本总月销量=0 且所有价格相同 | market | **0** | 业务告警：`meta.status=WARNING`、`price_bands=[]`（#13；旧实现 `ZeroDivisionError` exit 1） |
+| 全样本总月销量=0 且所有价格相同 | market | **0** | 业务告警：`meta.status=WARNING`、`price_bands=[]`（#13；基线实现 `ZeroDivisionError` exit 1） |
 
 ### 4.5 输出路由与编码
 
@@ -338,7 +338,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 - 切入价格带：候选集 = 有 Go 则仅 Go 行，否则有 Watch 则仅 Watch 行，否则全部行；对候选 `price` 排序后取线性插值百分位 `P25`、`P75` 与中位数，均 2 位；`basis` 对应三选一文案。若 `low == high`，令 `low = round(low×0.95,2)`、`high = round(high×1.05,2)`。
 - 百分位插值：`k=(n−1)×p/100`；`floor/ceil` 相等时取该元素，否则 `v[low]×(high−k)+v[high]×(k−low)`。
 
-### 5.4 样例算例复核（用于新实现对拍）
+### 5.4 样例算例复核（用于当前实现差分测试）
 
 **市场容量**：28 条样本 `Σsales=38,680`、`Σrevenue=1,527,531`，均价 = 所有 `price` 的算术平均 = 45.28，中位价 = 排序后第 14/15 位均值 = 32.49。
 **集中度（品牌）**：25 个品牌；把品牌销量求和后降序，前 3 名合计 16,100 件 → `16,100/38,680×100=41.62`；前 10 名合计 28,200 件 → 72.91；HHI = 各品牌销量占比百分数的平方和 = 816.82（输出 816.8）。
@@ -355,11 +355,11 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 
 ## 6. 已知行为与坑（现状）
 
-| # | 现象 | 触发条件 | 现状行为（含实测退出码/输出） | 新实现建议 |
+| # | 现象 | 触发条件 | 现状行为（含实测退出码/输出） | 当前实现建议 |
 |---|---|---|---|---|
-| 1 | 字符串异常导致退出码 1 | `normalize_export.py` 任意输入错误 | 旧实现 `sys.exit("[INPUT_MISSING] ...")`：消息写 **stderr**、退出码 **1**；`--json` 不产生 JSON。本批已改为显式 `SystemExit(2)`，文案不变（#1） | 已实施：见 #1 |
-| 2 | 缺文件/空 CSV/缺列/坏数字均退出 1 | normalize | 旧实测四种场景均 EXIT=1、stdout 为空；新实现同类场景 EXIT=2，stderr 文案逐字保持 | 已实施：见 #1 |
-| 3 | 错误输出走 stdout | market / opportunity | `[INPUT_MISSING]` 打到 stdout；无 JSON 错误对象 | 保持旧样（本批不改） |
+| 1 | 字符串异常导致退出码 1 | `normalize_export.py` 任意输入错误 | 基线实现 `sys.exit("[INPUT_MISSING] ...")`：消息写 **stderr**、退出码 **1**；`--json` 不产生 JSON。本版本已改为显式 `SystemExit(2)`，文案不变（#1） | 已实施：见 #1 |
+| 2 | 缺文件/空 CSV/缺列/坏数字均退出 1 | normalize | 基线实测四种场景均 EXIT=1、stdout 为空；当前实现同类场景 EXIT=2，stderr 文案逐字保持 | 已实施：见 #1 |
+| 3 | 错误输出走 stdout | market / opportunity | `[INPUT_MISSING]` 打到 stdout；无 JSON 错误对象 | 保持基线行为（本版本不改） |
 | 4 | ~~全样本 0 销量 + 全部同价 → 崩溃~~ | `market_metrics.py`，`max(price)==min(price)` 且 `Σmonthly_sales==0` | **已实施 #13**：`price_bands=[]`、`meta.status="WARNING"`、`meta.warnings` 一条，EXIT=**0**，无 traceback | 已解决 |
 | 5 | 0 销量 + 不同价 | 同上但价格不同 | EXIT=0，所有份额 0.0，HHI 0.0，CR3 0.0 | 保留 |
 | 6 | `--json` 覆盖 `--format` | `--format both --json` | 只输出 JSON，Markdown 被丢弃 | 保留（文档写明优先级） |
@@ -368,11 +368,11 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 9 | 可选列存在但单元格空 | opportunity | 该行按 2.0/3.0，并在 `defaults` 追加逐行提示 | 保留 |
 | 10 | 切入价带单值扩张 | 候选价格 P25=P75 | low×0.95、high×1.05（实测单行 29.99 → 28.49–31.49） | 保留，写入口径 |
 | 11 | 总分为 1 位小数但 verdict 用原值 | 边界 59.95/74.95 | 可能出现显示 60.0 却是 No-Go / 显示 75.0 却是 Watch；**边界未实测** | 明确阈值比较精度，或在输出中给未取整分 |
-| 12 | 负数不校验 | market 的 price/sales、opportunity 的 fee/fba/rating/reviews | 照算；可能出现负份额、负分（clamp 后 0）、负 momentum | 新实现补业务校验或明确允许 |
+| 12 | 负数不校验 | market 的 price/sales、opportunity 的 fee/fba/rating/reviews | 照算；可能出现负份额、负分（clamp 后 0）、负 momentum | 当前实现补业务校验或明确允许 |
 | 13 | 重复 ASIN 处理两套口径 | normalize 去重；market 不去重 | normalize 丢弃后续重复行并告警；market 同一 ASIN 重复计入 | 统一「入口去重」或文档说明 |
 | 14 | 表头别名大小写不敏感 | normalize | `ASIN`/`asin` 均可；未知别名不报错，只是缺列 | 保留 |
 | 15 | 整数字段截断 | normalize / opportunity | `int(float())` 向零截断；`reviews=200.9 → 200` | 保留或改为显式取整策略 |
-| 16 | 空行处理不同 | opportunity 跳过全空行；normalize 未跳过全空行 | **已探测（probe，2026-10-30）**：真正的空行（`csv.reader` 返回 `[]`）旧实现**跳过**；由 11 个空字段组成的行（`,,,,,,,,,,`）不跳过，报 `第 2 行 asin 为空`。新实现按此复刻：`if not row: continue` | 保留（已与旧实现对拍） |
+| 16 | 空行处理不同 | opportunity 跳过全空行；normalize 未跳过全空行 | **已探测（probe，2026-10-30）**：真正的空行（`csv.reader` 返回 `[]`）基线实现**跳过**；由 11 个空字段组成的行（`,,,,,,,,,,`）不跳过，报 `第 2 行 asin 为空`。当前实现按此复刻：`if not row: continue` | 保留（已与基线实现差分测试） |
 | 17 | `market_metrics.py` 输入支持带 `$`/`,` 数字字符串 | JSON 中 `price:"$19.99"` | 正常解析（代码明确）；输出为 float | 保留 |
 | 18 | `attributes` 交叉表按全样本分母 | 仅部分行有属性 | 属性行销量份额分母仍为全样本 S，份额合计可 <100% | 文档写明，避免误读 |
 
@@ -391,7 +391,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 | 业务参数越界（bins/top/target/cost） | — | 2 | 2 |
 | 运行期未捕获异常 | 1（如写文件失败，未实测） | 1（写盘失败等；除零已消除） | 未见已知路径 |
 
-### 6.2 新实现必须保持的行为清单
+### 6.2 当前实现必须保持的行为清单
 
 1. `normalize_export.py` 的去重语义是「保留首次出现」，且警告带原始行号。
 2. `market_metrics.py` 的均价是**简单平均**，不是销量加权；文档和字段名不得暗示加权。
@@ -404,7 +404,7 @@ sales_share_pct:num(2), monthly_revenue:num(2), items:int}]}`；`top` 含全部�
 9. 所有百分比字段在 JSON 中是 0–100 的数值，不是 0–1 小数。
 10. 三个脚本的 stdout 都是人可读的最终产物（JSON 或 Markdown），不得混入日志行。
 
-## 7. 对拍基准（可复现）
+## 7. 差分测试基准（可复现）
 
 工作目录：仓库根 `e:\SKILLS\supply-to-shelf-skills`；Python 3.12.0。
 
@@ -431,7 +431,7 @@ python Agents/01_Selection_Agent/scripts/market_metrics.py $env:TEMP\norm.json -
   - `brand_concentration.entity_count=25`、`cr3_pct=41.62`、`cr10_pct=72.91`、`hhi=816.8`；
   - `meta.trough_candidates_total=5`、`meta.trough_bands_shown=5`；
   - `attribute_cross_table=null`。
-- Markdown 对拍：`# 美国站类目市场测算`，总月销量显示 `38,680 件`，总月销售额 `$1,527,531.00`。
+- Markdown 差分测试：`# 美国站类目市场测算`，总月销量显示 `38,680 件`，总月销售额 `$1,527,531.00`。
 - 单样本裸数组用例：1 条商品 → EXIT=0、`cr3_pct=100.0`、`hhi=10000.0`、`cr3_meaningful=false`。
 
 ### 7.3 opportunity：示例 CSV
@@ -460,7 +460,7 @@ python Agents/01_Selection_Agent/scripts/opportunity_score.py --file Agents/01_S
 | `market_metrics.py <norm.json> --bins 0` | EXIT=2；stdout `--bins 必须 ≥ 1` |
 | `market_metrics.py <norm.json> --config-fields attributes` | EXIT=2；stdout 提示无 attributes |
 | `market_metrics.py <缺 fulfillment 的 1 条 JSON>` | EXIT=2；stdout `B0X 缺少/非法字段：fulfillment` |
-| `market_metrics.py <同价且总销量 0 的 JSON>` | EXIT=0；`meta.status=WARNING`、`price_bands=[]`（#13；旧实现 EXIT=1 + traceback） |
+| `market_metrics.py <同价且总销量 0 的 JSON>` | EXIT=0；`meta.status=WARNING`、`price_bands=[]`（#13；基线实现 EXIT=1 + traceback） |
 | `opportunity_score.py --file <不存在>` | EXIT=2；stdout `找不到输入文件` |
 | `opportunity_score.py --file <示例> --factory-cost-usd 5.32 --target-price 0` | EXIT=2；stdout `--target-price 必须 > 0` |
 | `opportunity_score.py --file <示例> --factory-cost-usd -1 --target-price 29.99` | EXIT=2；stdout `--factory-cost-usd 不能为负` |
@@ -468,7 +468,7 @@ python Agents/01_Selection_Agent/scripts/opportunity_score.py --file Agents/01_S
 | `opportunity_score.py --file <行含 price=abc>` | EXIT=2；stdout `第 3 行 price 不是数字：abc` |
 | `opportunity_score.py --file <表头但无数据>` | EXIT=2；stdout `CSV 没有数据行。` |
 
-### 7.5 最小对拍输入样例
+### 7.5 最小差分测试输入样例
 
 单商品 normalized JSON（`market_metrics.py` 应输出 CR3=CR10=100、HHI=10000、`cr3_meaningful=false`）：
 
@@ -488,30 +488,30 @@ B0TEST0001,29.99,1000,260,3.9,TestSeller
 ```
 
 命令：`python Agents/01_Selection_Agent/scripts/opportunity_score.py --file <上述文件> --factory-cost-usd 5.32 --target-price 29.99 --json` → EXIT=0，实测 `score=73.9`、`verdict=Watch`、`verdict_counts={Go:0,Watch:1,No-Go:0}`、`entry_price_band={low:28.49,high:31.49,median:29.99,basis:"Watch 候选价格 P25–P75"}`。
-这与 28 行样本的差异正说明：竞争维度依赖**全表卖家集中度**，单行样本会得到 0 分；用单行数据对拍时必须写死该结论，不能拿 80.5 做期望。
+这与 28 行样本的差异正说明：竞争维度依赖**全表卖家集中度**，单行样本会得到 0 分；用单行数据差分测试时必须写死该结论，不能拿 80.5 做期望。
 
 最小 normalize CSV（11 列齐全）：任意一行即可复现 `item_count=1`、无 warning；若把 `price` 改成 `abc` 应 EXIT=2 且 stderr 指向第 2 行（#4）。
 
 ## 8. 未完整刻画/待确认
 
 1. **verdict 边界精度**：总分先 `round(,1)` 输出，但 verdict 用未取整值；59.95–60.0、74.95–75.0 的实际归属未实测，规格需明确。
-2. **NaN / Infinity**：洗清后 `float("nan")` / `float("inf")` 在旧实现会被接受（`Infinity` 会写进 JSON，非法 JSON）。**本批已实施（#5）**：`math.isfinite` 显式校验，NaN 走缺值分支、Inf 报「不是有限数值（NaN/Inf）」，两者都 exit 2。`opportunity_score.py` 的同类校验也已生效（`compliance_risk` / `supply_feasibility` 非有限值报错）。
+2. **NaN / Infinity**：洗清后 `float("nan")` / `float("inf")` 在基线实现会被接受（`Infinity` 会写进 JSON，非法 JSON）。**本版本已实施（#5）**：`math.isfinite` 显式校验，NaN 走缺值分支、Inf 报「不是有限数值（NaN/Inf）」，两者都 exit 2。`opportunity_score.py` 的同类校验也已生效（`compliance_risk` / `supply_feasibility` 非有限值报错）。
 3. **重复表头**：同一 CSV 出现两列同名时取第一个；未实测 csv 模块的 `None` 键/多余列处理。
-4. **normalize 全空行**：已探测（probe，2026-10-30）。真正的空行（`[]`）被跳过；11 个空字段的行报 `第 2 行 asin 为空`。新实现已复刻并纳入对拍用例。
+4. **normalize 全空行**：已探测（probe，2026-10-30）。真正的空行（`[]`）被跳过；11 个空字段的行报 `第 2 行 asin 为空`。当前实现已复刻并纳入差分测试用例。
 5. **`attributes` 字符串中的空白与重复值**：已探测：`--attributes "a,a , "` → `["a","a"]`（去空、不去重）。全角逗号、换行等未覆盖。
-6. **属性交叉表 `avg_price`**：按商品简单平均而非销量加权，是否为新实现期望口径需产品确认。
+6. **属性交叉表 `avg_price`**：按商品简单平均而非销量加权，是否为当前实现期望口径需产品确认。
 7. **市场报告中的 `trough_threshold` 负值/极大值**：无校验，行为按公式外推，未实测。
 8. **opportunity 对 `rating > 5` 或负值**：clamp 后可能得 0 分或 100 分，业务上是否允许未定义。
 9. **货币**：三个脚本都写死 USD；是否需支持其它币种未在代码中出现。
 10. **stdout UTF-8 重设失败**（非 Windows/受限终端）时的降级行为未实测。
 11. **写文件失败**：`--output` 指向不存在目录或无写权限时，代码未做兜底；是否为 traceback/退出 1 未实测。
 12. **多扩展名输入文件名**：已探测：`myfile.tar.csv` → `myfile.tar.normalized.json`（`with_suffix` 只替换最后一个扩展名）。
-13. **非 UTF-8 编码（如 GBK）**：以 `utf-8-sig` 打开会抛 `UnicodeDecodeError`；新实现捕获后报 `[INPUT_MISSING] 无法读取文件：...`、exit 2，但编码探测/回退仍未实现。
+13. **非 UTF-8 编码（如 GBK）**：以 `utf-8-sig` 打开会抛 `UnicodeDecodeError`；当前实现捕获后报 `[INPUT_MISSING] 无法读取文件：...`、exit 2，但编码探测/回退仍未实现。
 14. **标题截断的字符口径**：按 Python 字符数（Unicode code point）截断，非显示宽度；中文与 emoji 的视觉宽度未处理。
 
 ### 8.1 探测记录（probe，2026-10-30）
 
-| 行为点 | 探测输入 | 旧实现输出/退出码 | 新实现 |
+| 行为点 | 探测输入 | 基线实现输出/退出码 | 当前实现 |
 |---|---|---|---|
 | 空 CSV | 0 字节文件 | stderr `[INPUT_MISSING] CSV 没有表头`，exit 1 | 同文案，exit 2（#1） |
 | 仅表头 | 表头一行 | stderr `CSV 没有数据行`，exit 1 | 同文案，exit 2（#1） |

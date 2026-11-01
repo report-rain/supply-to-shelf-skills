@@ -1,4 +1,4 @@
-# 02 Cost & Pricing Agent — 规格冻结（clean-room 重写基线）
+# 02 Cost & Pricing Agent — 规格冻结（实现基线）
 
 > 只描述可观察行为，不复制实现。数值来自 2026-10-30 在 Windows / Python 3.12.0 的实跑或代码明确常量。
 > 覆盖：`Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py`（实际 1152 行）、`scripts/us_fees.json`、`scripts/hts_tariff.json`、`config/category_map.json`、根目录 `cli_common.py`。
@@ -166,7 +166,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 
 - `_meta`：`updated`、`currency`、`disclaimer`、`notes`；仅用于列表页展示。
 - `platforms.<key>`：`name`、`default_referral_pct`、`min_referral_fee_usd`、`categories{...}`、可选 `note`。
-  - `amazon_us.categories.<key>`：`label`、`tiers`（`[{max_price_usd:num|null, pct:num}]`）、可选 `min_fee_usd`（覆盖平台最低佣金）、`note`；个别兼容旧结构 `referral_pct` + `tier_threshold_usd` + `above_threshold_pct`。
+  - `amazon_us.categories.<key>`：`label`、`tiers`（`[{max_price_usd:num|null, pct:num}]`）、可选 `min_fee_usd`（覆盖平台最低佣金）、`note`；个别兼容结构 `referral_pct` + `tier_threshold_usd` + `above_threshold_pct`。
   - `tiktok_us`：`default_referral_pct=6.0`、`new_seller_promo_pct=3.0`、`new_seller_window_days=60`、`new_seller_gmv_cap_usd=500000`、`min_referral_fee_usd=0.0`；无 `categories`。
 - `fba.fuel_surcharge_pct`、`fuel_surcharge_effective`、`windows.{nonpeak,peak}`。
 - `fba.tiers.<key>`：`label`、`rates.{nonpeak,peak}[]`（`max_oz`、`fees{lt10,10_50,gt50}` 或 `over_3lb{base{...},per_4oz_usd}`）或 `base.{nonpeak,peak}{...}` + `per_lb_over_first_usd`（bulky 档）。
@@ -190,8 +190,8 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 | `fba.tiers` 中显式指定的档不存在 | `missing=["fba_tier"]`，列出可选档 | 2 |
 | `us_fees.json:platforms.<平台>` | `missing=["platform"]`，列出可选平台 | 2 |
 | `platforms.amazon_us.min_referral_fee_usd` | `get(..., 0.0)` → 视为无最低佣金（不报错） | — |
-| 类目对象无 `tiers` | 走旧结构 `referral_pct`/`above_threshold_pct` | — |
-| 旧结构无 `above_threshold_pct` | 全程单一 `referral_pct` | — |
+| 类目对象无 `tiers` | 走兼容结构 `referral_pct`/`above_threshold_pct` | — |
+| 兼容结构无 `above_threshold_pct` | 全程单一 `referral_pct` | — |
 | `config/category_map.json` 文件缺失/解析失败 | `missing=["config/category_map.json"]` | 2 |
 | `hts_tariff.json` 文件缺失/解析失败 | `missing=["<hts_tariff.json 绝对路径>"]`（仅使用 `--hts` 时加载） | 2 |
 | HTS 条目缺 `mfn_pct`/`section301_pct` | `entry.get(..., 0.0)` → 按 0 计，不报错 | 0 |
@@ -256,7 +256,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 ```
 {"status":"INPUT_MISSING"|"ERROR", "missing":[str], "message":str}
 ```
-`status` 默认 `INPUT_MISSING`；当前代码未主动传 `ERROR`，故实际只见 `INPUT_MISSING`。`message` 会剥离开头的 `[INPUT_MISSING]`/`[ERROR]` 标签。`calc` 缺参时 `message` 里的参数名按旧实现用 `", "`（逗号+空格）拼接，不使用中文顿号。
+`status` 默认 `INPUT_MISSING`；当前代码未主动传 `ERROR`，故实际只见 `INPUT_MISSING`。`message` 会剥离开头的 `[INPUT_MISSING]`/`[ERROR]` 标签。`calc` 缺参时 `message` 里的参数名按基线实现用 `", "`（逗号+空格）拼接，不使用中文顿号。
 
 矩阵失败 JSON（有失败行时）：
 ```
@@ -314,7 +314,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 
 判定依据：`missing` 由抛错调用点传入——matrix 的行内前置校验（sku/数字/必填/口径空）统一传 `missing=[]`；`compute_sku` 中的配置/枚举/边界错误沿用其单 SKU 形态的 `missing`（`category_key`/`platform`/`fba_tier`/`weight_oz` 等）。
 
-探测（旧仓库，2026-10-30）：
+探测（基线目录，2026-10-30）：
 
 ```powershell
 python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行坏样本.csv> --fx 0.14 --json
@@ -328,11 +328,11 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行�
 - 未显式传入（`calc` 无 `--customs-fee-per-unit`；CSV `customs_fee_per_unit` 单元格为空）→ `true`，且 `notes` 追加 `[WARN] 未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算`。
 - 显式传入（含显式传 `0.18` 本身）→ `false`，不追加该 `[WARN]`。
 - `[WARN]` note 的位置：`calc` 中位于默认值类 note 第 5 条（`index 4`，即 ads/returns/target/moq 之后、platform 之前）；`matrix` 行里 ads/returns/target/moq 默认 note 被抑制，该条成为 `notes[0]`（队首），其后才是 platform/旺季/燃油/分段近似。
-- 该字段与 `[WARN]` 前缀是重写新增，旧实现既无该键也无该前缀、只有无前缀的默认 note（`notes[4]`）；对应 `99_gap_and_decisions.md` 有意差异 #8，既有字段语义不变。
+- 该字段与 `[WARN]` 前缀属本实现新增，基线实现既无该键也无该前缀、只有无前缀的默认 note（`notes[4]`）；对应 `99_gap_and_decisions.md` 有意差异 #8，既有字段语义不变。
 
 探测（2026-10-30）：
 
-| 命令 | 旧结果 | 新结果 |
+| 命令 | 基线结果 | 当前结果 |
 |---|---|---|
 | `calc ...`（不传 customs） | `notes[4]="未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算"`；`inputs` 无 `customs_fee_placeholder` | `inputs.customs_fee_placeholder=true`；`notes[4]` 带 `[WARN] ` 前缀 |
 | `calc ... --customs-fee-per-unit 0.5` | 无该 note；无该键 | `=false`；无 `[WARN]` |
@@ -358,7 +358,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行�
 
 ### 5.2 Referral
 
-优先级：显式 `--referral` > `tiktok_us` 平台默认 > `amazon_us` 类目分段/旧结构 > 缺省兜底。
+优先级：显式 `--referral` > `tiktok_us` 平台默认 > `amazon_us` 类目分段/兼容结构 > 缺省兜底。
 
 - 显式：`referral_usd = round2(price × referral / 100)`；`referral_pct_effective = referral`；`label="显式 referral"`；`tiered=false`；不受最低佣金约束。
 - `tiktok_us`：`rate = default_referral_pct`（6.0）；`referral_usd = round2(price × rate/100)`；`source=platform_default`；`min` 不生效；notes 追加 6% 与新手优惠说明 + 「达人佣金另计」。
@@ -367,9 +367,9 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行�
   - 类目解析：精确 key → 别名 → 平台路径最长前缀；命中路径/别名时 notes 提示，路径映射带 `[WARN]`。
   - 分段：`tiered_amount(price, tiers)` 从 0 开始逐段累加：每段 `portion = min(price, upper) − lower`（`upper=null` 视为 ∞）；`portion>0` 时计入 `portion × pct/100` 并推进 `lower`；`price ≤ upper` 时停止。`amount_raw` 求和后 `round2`。
   - 有效费率：`referral_pct_effective = round2(amount_raw / price × 100)`（`price=0` 时为 0，但入口已拒绝 ≤0）。
-  - 旧结构（无 `tiers`）：`base=referral_pct(默认15)`；若 `threshold` 与 `above` 均存在且 `price > threshold`，`amount = round2(base×threshold/100 + above×(price−threshold)/100)`；否则 `round2(price×base/100)`。
+  - 兼容结构（无 `tiers`）：`base=referral_pct(默认15)`；若 `threshold` 与 `above` 均存在且 `price > threshold`，`amount = round2(base×threshold/100 + above×(price−threshold)/100)`；否则 `round2(price×base/100)`。
   - 最低佣金：`effective_min = 类目 min_fee_usd`（若存在，可为 0）否则平台 `min_referral_fee_usd`（Amazon 0.30）；若 `effective_min > 0` 且 `amount < effective_min`，`amount = round2(effective_min)`，重算有效费率，`min_applied=true`，notes 提示。
-  - 输出字段：`category=us_fees_key`、`category_key=canonical`、`source=platform_category`、`tiered`（分段或旧结构为 true）、`detail`（逐段文本）。
+  - 输出字段：`category=us_fees_key`、`category_key=canonical`、`source=platform_category`、`tiered`（分段或兼容结构为 true）、`detail`（逐段文本）。
 
 ### 5.3 FBA
 
@@ -454,7 +454,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file <9 行�
 | 20 | matrix 列默认与 calc 参数默认一致 | 空单元格 | ads 10 / returns 3 / target 25 / moq 500 / customs 0.18；`moq` 先 float 再 int 截断 | 保留 |
 | 21 | `--list-platforms` 优先 | 列表 flag + 子命令 | 只打印列表，EXIT=0；子命令参数被忽略 | 保留或报互斥 |
 | 22 | 顶层 `--json` 无效 | `landed_cost.py --json` | argparse `unrecognized arguments: --json`，EXIT=2（JSON 错误） | 新实现可考虑全局 `--json` |
-| 23 | 输出舍入 | 任意金额 | Python `round` 银行家舍入 + 浮点误差；例如 4.4985→4.5、5.6097→5.61 | 明确舍入口径并加对拍断言 |
+| 23 | 输出舍入 | 任意金额 | Python `round` 银行家舍入 + 浮点误差；例如 4.4985→4.5、5.6097→5.61 | 明确舍入口径并加差分测试断言 |
 | 24 | 配置解析失败统一 2 | JSON 损坏/文件缺失 | `fail(..., missing=[路径])`，EXIT=2（不是 3） | 与码表统一 |
 
 ### 6.1 现状行为补充（probe，2026-10-30）
@@ -484,7 +484,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py
 
 观察：EXIT=2；usage/help 全部写 **stdout**（首行 `usage: landed_cost.py [-h] [--list-platforms] [--list-fba-tiers]`）；`缺少子命令：calc 或 matrix` 写 stderr。
 
-## 7. 对拍基准（可复现）
+## 7. 差分测试基准（可复现）
 
 工作目录：仓库根；Python 3.12.0；运行日 2026-10-30（未给 ship-date 时按此）。以下命令均实测。
 
@@ -571,7 +571,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py matrix --file Agents/
 2. **分段边界**：实测 price=300 时 referral=45.0（15%），说明 ≤300 段含边界；price 恰好 15/20/100/250/1500 等其它边界未逐一实测。
 3. **HTS 前缀匹配的反向包含**：除 `8509` 外，短编码（如 `85`）、带点尾（如 `8509.`）、`8509.40.00.15` 的匹配结果未逐一实测；已知 `8509` 会选 8509.90。
 4. **类目路径同长度歧义**：代码会报错，但当前配置未构造出实测样本，错误文案与 `missing` 已按代码记录。
-5. **旧结构 referral 分支**：`referral_pct + tier_threshold_usd + above_threshold_pct` 的兼容逻辑当前配置不触发，未实测。
+5. **兼容结构 referral 分支**：`referral_pct + tier_threshold_usd + above_threshold_pct` 的兼容逻辑当前配置不触发，未实测。
 6. ~~**`season` 列的非法值**：matrix 不校验枚举，`"foo"` 会走 auto 分支并可能按 ship-date 判定；未实测。~~ 已实测（2026-10-30）：`fubar`/`peak2` 均回落 auto，见 §6.1。
 7. **`no_fuel_surcharge` 的合法取值集合**：当前是「非空即真」，新实现需产品确认布尔表示（`true/false`、`1/0`、`Y/N`）。
 8. **`--fba-fee` + 极小/负值**：不校验，可能产生负 FBA 费；未实测。

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""广告投放指标计算与诊断（clean-room 重写）。
+"""广告投放指标计算与诊断。
 
 行为规格见 docs/spec/06_ads.md。只读本地报表与 02 费率元数据，不接平台 API。
 错误契约沿用 shared.errors：JSON 到 stdout，人类信息到 stderr。

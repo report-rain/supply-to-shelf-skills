@@ -4,12 +4,12 @@
 > 实测环境：Windows PowerShell 5 + Python 3.12.0；基准日 2026-10-30。
 > 本文只描述行为，不含实现细节；所有示例数值均来自实跑。
 
-## 1. 范围与脚本（职责 + 依赖配置/上游）
+## 1. 范围与脚本（职责 + 依赖配置/前置模块）
 
 - `calc`：由「售价、产品成本、Referral%、FBA 费、退货预留、计划广告预留、目标 ACOS」推算广告前贡献、盈亏线 ACOS/ROAS、目标 ROAS、可承受 CPC、TACOS。
 - `diagnose`：在同一成本模型下读取 campaign 级广告报表 CSV，逐行算 CTR/CVR/CPC/ACOS/ROAS/净贡献，给出 P0/P1/P2/INFO 判定、主杠杆、单轮动作与「本轮不动」清单。
 - 边界：只读本地文件、只输出建议；不接平台 API、不改预算/出价、不写回任何文件。
-- 上游依赖：`Agents/02_Cost_Pricing_Agent/scripts/us_fees.json` 是唯一费率来源声明。06 只校验该文件存在、可解析为 JSON 对象，并读取 `_meta.updated` 与 `_meta.sources`；**不读取任何具体费率数值**，Referral/FBA 仍由 CLI 显式传入。
+- 前置依赖：`Agents/02_Cost_Pricing_Agent/scripts/us_fees.json` 是唯一费率来源声明。06 只校验该文件存在、可解析为 JSON 对象，并读取 `_meta.updated` 与 `_meta.sources`；**不读取任何具体费率数值**，Referral/FBA 仍由 CLI 显式传入。
 - 该配置缺失、不可读或非法 JSON 时，`calc` 与 `diagnose` 都会直接失败（退出码 2），即便本次计算并不需要费率。
 - 路径按脚本位置解析为 `<repo>/Agents/02_Cost_Pricing_Agent/scripts/us_fees.json`，随仓库移动而移动。
 - `_meta.updated` 缺失时输出字符串 `[INPUT_MISSING] _meta.updated`；`sources` 缺失时输出空数组。
@@ -369,7 +369,7 @@ TACOS 34.61%（总广告花费 ÷ 总销售额）
 | 参数错误 JSON 化 | `--platform ebay_us --json` | stdout JSON「参数错误：invalid choice...」，退出 2（实跑） | 保留 |
 | 成功恒 0 | 任意 P0/负毛利 | 退出 0（实跑负毛利 calc） | 保留；下游需读字段而非退出码 |
 
-## 7. 对拍基准（必须可复现）
+## 7. 差分测试基准（必须可复现）
 
 工作目录：`Agents/06_Ads_Agent`。以下命令在 PowerShell 5 中可直接执行。
 
@@ -415,7 +415,7 @@ python scripts/ads_metrics.py diagnose --file examples/sample-campaign.csv ^
 - 逐行关键值：`PB-Longtail-Phrase` 点击 96、订单 0、ROAS 0.0、ACOS null、P0；`PB-Broad-Cheap` ROAS 1.25、ACOS 79.75、P0；`PB-Core-Exact` ROAS 5.9、ACOS 16.95、P2；`PB-New-Video` 曝光 640、INFO。
 - 本命令未传 `--cvr`，故零订单行 `affordable_cpc=0.0`；`missing=[]`（退货预留已给）。
 
-### 7.4 失败与边界对拍
+### 7.4 失败与边界差分测试
 
 | 命令要点 | 期望 |
 |---|---|
@@ -434,7 +434,7 @@ python scripts/ads_metrics.py diagnose --file examples/sample-campaign.csv ^
 - UTF-8 以外的编码（如 GBK）未测试；CSV 分隔符仅支持逗号。
 - 表头重复、全角逗号、全角负号、`USD` 小写等清洗边界未逐一实跑。
 - 曝光/点击/订单的银行家舍入是否就是期望口径未确认；若业务要求四舍五入需改。
-- 中间量取整位置已由本批对拍固定为「全精度计算、输出取整」（见 §5.1），与 99 D10 的 A 方案一致。
+- 中间量取整位置已由本版本差分测试固定为「全精度计算、输出取整」（见 §5.1），与 99 D10 的 A 方案一致。
 - 负数 `--ad-spend` 可产生负 TACOS，是否应拒绝未确认。
 - 06 对「点击 ≥30 且零订单」的阈值 30 是常量，未给出业务出处。
 - 人类输出的换行宽度随终端变化，未冻结列宽。

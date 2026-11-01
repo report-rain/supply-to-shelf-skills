@@ -1,4 +1,4 @@
-# 04 Listing 文本工具 —— 规格冻结（clean-room 重写基线）
+# 04 Listing 文本工具 —— 规格冻结（实现基线）
 
 > 对象：`Agents/04_Listing_Agent/scripts/claim_scan.py`、`listing_lint.py`
 > 两份脚本均为纯标准库、零配置文件，规则常量内嵌在脚本中。
@@ -11,7 +11,7 @@
 | `claim_scan.py` | FTC/FDA 高风险声明关键词扫描：命中词、风险级别、原因、改写建议；不做语义判断 | 无配置；内置 22 条规则 | 0=无 HIGH；1=有 HIGH；2=输入缺失/不可读 |
 | `listing_lint.py` | Amazon US / TikTok Shop US Listing 文案确定性自检：标题、五点、后台词、描述、A+、IP 一致性 | 无配置；内置平台阈值 | 0=无 FAIL（可含 WARN）；1=有 FAIL；2=输入缺失/不可读 |
 
-两者不共享代码、不读取上游 JSON；`listing_lint` 只吃一个 Listing JSON，`claim_scan` 吃纯文本。上游是 01/02/03 产出的文案或 Listing 草稿。
+两者不共享代码、不读取前置 JSON；`listing_lint` 只吃一个 Listing JSON，`claim_scan` 吃纯文本。前置输入是 01/02/03 产出的文案或 Listing 草稿。
 
 ## 2. CLI 契约
 
@@ -30,7 +30,7 @@
 
 1. 同时给 `--file` 与 `--text` → 固定报错 `--file 与 --text 只能二选一`，exit 2，不读文件。
 2. 两者都不给 → 报错 `缺少 --file 或 --text`，exit 2。
-3. 只有 `--text` 时按文本模式处理；`--text ""` 视为缺失（与旧侧一致）→ exit 2、`缺失 --file 或 --text`。
+3. 只有 `--text` 时按文本模式处理；`--text ""` 视为缺失（与基线一致）→ exit 2、`缺失 --file 或 --text`。
 4. 无位置参数；未知选项/缺值由 argparse 处理，exit 2（非 JSON 契约）。
 
 ### 2.2 `listing_lint.py`
@@ -176,7 +176,7 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | JSON 语法错误 | 2 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] JSON 解析失败: …"}`（无 missing） |
 | 顶层非对象 | 2 | `{"status":"INPUT_MISSING","missing":["object"],"message":"[INPUT_MISSING] 顶层必须是 JSON 对象"}` |
 | 缺必填字段 | 2 | `{"status":"INPUT_MISSING","missing":[…],"message":"[INPUT_MISSING] 缺少字段: …"}` |
-| 非 UTF-8 文件 | **2** | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`（无 missing）——重写修正，见 #6 |
+| 非 UTF-8 文件 | **2** | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`（无 missing）——本实现修正，见 #6 |
 | 有 FAIL finding | 1 | 正常 JSON/文本 |
 | 仅 WARN 或全 PASS | 0 | 正常 JSON/文本 |
 | 缺 `--file` / `--platform` / 非法平台 | 2 | argparse usage + error 到 stderr，stdout 空 |
@@ -314,17 +314,17 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | 2 | 两个来源互斥 exit 2 | 同时给 `--file` 与 `--text` | exit 2；不读文件，直接报「只能二选一」 | 保留 |
 | 3 | HIGH 才影响退出码 | 仅 MEDIUM/LOW 命中 | `verdict=WARN` 但 exit **0**；例：`premium/professional/advanced` → exit 0 | 保留（文档需强调） |
 | 4 | HIGH → exit 1 | 任一 HIGH | `verdict=FAIL`，exit 1 | 保留 |
-| 5 | 解码失败 exit 2 但无 `missing` | GBK 中文文件 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`；stderr 为空 | 保留旧样（与 05 的 #12 语义一致） |
+| 5 | 解码失败 exit 2 但无 `missing` | GBK 中文文件 | `{"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: …"}`；stderr 为空 | 保留基线行为（与 05 的 #12 语义一致） |
 | 6 | 错误信息走 stdout | 非 JSON 模式的全部输入错误 | 实测 stderr 长度 0，message 打到 stdout | 建议改为 stderr（与 03 对齐） |
 | 7 | `--ip-rating 0` 被当作“已声明等级” | `--ip-rating 0` | `waterproof` 降为 MEDIUM，输出「已声明 IP 等级 0」；exit 0 | 建议把 `0` 加入无等级集合 |
 | 8 | GBK 纯 ASCII 文件不报错 | 文件仅含 ASCII | 能正常解码，扫描继续 | 属正常，编码探测仅按 UTF-8 |
 | 9 | 匹配允许连字符/空格互换 | `fda-approved`、`non toxic` | 命中 `fda approved` / `non-toxic`（实测前者命中） | 保留 |
-| 10 | `100 %` 不命中 | 数字与百分号间有空格 | 按当前正则不匹配（代码推导，未实测） | 重写时明确词形 |
+| 10 | `100 %` 不命中 | 数字与百分号间有空格 | 按当前正则不匹配（代码推导，未实测） | 实现时明确词形 |
 | 11 | 计数为“词条数” | 同一词出现多次 | `counts.HIGH` 只 +1，`hit.count` 才反映次数 | 保留，字段命名需说明 |
 | 12 | `listing_lint` FAIL → exit 1 | 任一 FAIL | 例：210 字符标题 + 1 条 bullets → FAIL 2、WARN 3、exit 1 | 保留 |
 | 13 | 仅 WARN → exit 0 | 无 FAIL | verdict=WARN、exit 0 | 保留 |
 | 14 | `verdict` 与退出码非一一对应 | verdict=WARN | 也可能 exit 0；不是 1 | 文档需列映射表 |
-| 15 | 非 UTF-8 直接 traceback（旧侧） | Listing JSON 用 GBK 中文 | 旧侧未捕获 `UnicodeDecodeError` → exit 1、无 JSON；重写改为 exit 2 + `INPUT_ERROR`（#6） | 已修正 |
+| 15 | 非 UTF-8 直接 traceback（基线） | Listing JSON 用 GBK 中文 | 基线未捕获 `UnicodeDecodeError` → exit 1、无 JSON；本实现改为 exit 2 + `INPUT_ERROR`（#6） | 已修正 |
 | 16 | 缺 `--platform` 无 JSON 契约 | 不传或传非法值 | argparse usage 到 stderr，exit 2，stdout 空 | 建议统一错误出口 |
 | 17 | `item_name` 存在时忽略 `title` 长度 | Amazon 且 `item_name` 非空 | 用 `item_name + item_highlights` 校验；但 `title` 仍属必填 | 文档写明双轨 |
 | 18 | 拆分标题必填项 | 只给 `item_name`/`item_highlights` | 缺 `title` → INPUT_MISSING（required_fields 仍要 `title`） | 建议放宽 |
@@ -333,13 +333,13 @@ D {"status":"INPUT_ERROR","message":"[INPUT_ERROR] 文件不是 UTF-8 文本: <p
 | 20a | TikTok 也被 `bullets` 类型规则波及 | TikTok + `bullets:"..."` | `missing` 追加 `bullets(须为数组)` → INPUT_MISSING，尽管 TikTok 本不检查五点 | 建议按平台限定 |
 | 21 | 描述里的价格/联系方式不检查 | 描述含 `$`、URL | 只有 bullets 查价格与联系方式；TikTok 另查 `$` | 建议补齐 |
 | 22 | 描述与 A+ 的促销词只 WARN | 命中 HARD_PROMO | 不导致 exit 1（`hot` 被排除） | 保留 |
-| 23 | `TOO_LONG` 检查不可达 | 所有 `scan_buyer_text` 调用均未传 `max_chars` | 该 code 永不产生 | 重写时可删 |
+| 23 | `TOO_LONG` 检查不可达 | 所有 `scan_buyer_text` 调用均未传 `max_chars` | 该 code 永不产生 | 实现时可删 |
 | 24 | 全大写 FAIL 阈值 | 2 个及以上全大写词 | 同一词重复两次也计 2 → FAIL | 建议按去重词计 |
 | 25 | 品牌位置按首次子串 | 品牌在标题中晚出现 | 下标 ≥80 → WARN；消息报 1-based 位次 | 保留 |
 | 26 | 后台词类型漂移 | `backend_search_terms` 为数组/对象 | 必填校验可能通过（非空），但检查被整体跳过 | 建议类型校验 |
 | 27 | `product_attributes` 形态宽容 | 数组/对象/`k:v` 字符串 | 统一小写；`ip_rating:none` 触发全文 IP 冲突扫描 | 保留 |
 
-## 7. 对拍基准（必须可复现）
+## 7. 差分测试基准（必须可复现）
 
 统一前缀：
 
@@ -444,9 +444,9 @@ python Agents/04_Listing_Agent/scripts/listing_lint.py --file Agents/04_Listing_
 ## 8. 未完整刻画 / 待确认
 
 - `100 %`（数字与 `%` 之间有空格）是否命中未实测，仅按正则推导为不命中。
-- 标题长度 80/81、200/201 边界已用单元测试与对拍固定；`BRAND_TOO_LATE` 恰在第 80/81 字符的位次边界仍未单独构造用例。
+- 标题长度 80/81、200/201 边界已用单元测试与差分测试固定；`BRAND_TOO_LATE` 恰在第 80/81 字符的位次边界仍未单独构造用例。
 - `product_attributes` 为对象且含重复大小写键、数组元素无冒号时的覆盖顺序未穷举。
 - HARD_PROMO 中 `#1` 的子串边界（如 `#10`）未实测。
 - `claim_scan` 的 `--text` 含 BOM 字符、`\r\n` 与 `char_count` 的关系未单独验证。
 - `listing_lint` 对非字符串 `title`、`brand` 的强制 `str()` 行为未实测。
-- 两份脚本的 argparse 参数错误均不走统一 JSON 契约（与旧侧一致），按现状保留。
+- 两份脚本的 argparse 参数错误均不走统一 JSON 契约（与基线一致），按现状保留。

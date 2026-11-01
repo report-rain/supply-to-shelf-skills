@@ -14,5 +14,5 @@ def pct(value):
 
 
 def num(value):
-    """Render a number without forcing decimals (mirrors the legacy text output)."""
+    """Render a number without forcing decimals (keeps the plain text output)."""
     return str(value)

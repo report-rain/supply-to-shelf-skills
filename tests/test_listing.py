@@ -157,7 +157,7 @@ class ClaimScanTests(TempJson):
             self.assertEqual(payload["hits"][0]["risk"], "HIGH", rating)
 
     def test_ip_rating_zero_counts_as_declared(self):
-        """`--ip-rating 0` 在 claim_scan 里按“已声明”处理（旧侧一致），降为 MEDIUM。"""
+        """`--ip-rating 0` 在 claim_scan 里按“已声明”处理（基线一致），降为 MEDIUM。"""
         result = claim(["--text", "This bottle is waterproof.", "--ip-rating", "0", "--json"])
         self.assertEqual(result.returncode, 0)
         payload = json.loads(result.stdout)
@@ -165,7 +165,7 @@ class ClaimScanTests(TempJson):
         self.assertEqual(payload["hits"][0]["risk"], "MEDIUM")
 
     def test_negation_is_still_a_keyword_hit(self):
-        """否定语境按关键词级记录：`not waterproof` 仍命中 waterproof（与旧侧一致）。"""
+        """否定语境按关键词级记录：`not waterproof` 仍命中 waterproof（与基线一致）。"""
         result = claim(["--text", "This cup is not waterproof.", "--json"])
         self.assertEqual(result.returncode, 1)
         payload = json.loads(result.stdout)

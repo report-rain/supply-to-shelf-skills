@@ -1,4 +1,4 @@
-# 03 合规准入闸门 —— 规格冻结（clean-room 重写基线）
+# 03 合规准入闸门 —— 规格冻结（实现基线）
 
 > 对象：`Agents/03_Compliance_Agent/scripts/compliance_gate.py`
 > 规则来源：同目录 `compliance_rules.json`（v2.1.0，2026-10-30）+ 仓库根 `config/category_map.json`（v1.1.0）
@@ -11,7 +11,7 @@
   - `compliance_rules.json`：59 个 `doc_library` 条目（其中 blocking=2：`fda_device_clearance`、`ftc_health_substantiation`；advisory=4：`amazon_category_approval`、`amazon_label_review`、`tiktok_category_qualification`、`tiktok_product_cert`）；16 个合规类目；13 个属性；2 个平台。
   - `config/category_map.json`：18 个映射项（含 `default`，其 `compliance_key=null`）；5 个别名。
   - `cli_common.py`：统一错误出口（`fail()` / `JsonArgumentParser`）、`--json` 模式。
-  - 上游：01 选品给出 category_key、03 自己维护属性标签；02 共用映射表。无网络、无第三方库。
+  - 前置依赖：01 选品给出 category_key、03 自己维护属性标签；02 共用映射表。无网络、无第三方库。
 - 退出码：`0=PASS（即需求里的 APPROVED）`、`1=CONDITIONAL`、`2=BLOCKED`、`3=输入/参数/配置错误`。
 
 ## 2. CLI 契约
@@ -326,11 +326,11 @@
 | 15 | 状态名是 PASS 不是 APPROVED | 成功 | JSON/文本均写 `PASS`；退出码 0 | 文档需注明等价关系 |
 | 16 | 重复属性会重复标签 | `--attr lithium_battery --attr lithium_battery` | 文档按 id 合并；`generated_for.attributes` 与 labels 出现重复项 | 建议去重 |
 | 17 | `--list-categories` 不列 `default` | 直接调用 | 只列 17 个可映射键（映射到 16 个合规类目，`electronics` 与 `electronics_accessories` 共用）；别名单独一行 | 保留 |
-| 18 | `rules_direct` 分支不可达 | 现有规则库键均被覆盖 | 走 alias 或 mapping；无法实测触发 | 重写时可删除或保留兼容 |
-| 19 | 映射表注释与实现矛盾 | 阅读 `_meta.note` | 注释称 platform_paths「仅用于展示，不参与计算」，但 03 实际按最长路径前缀解析（实测 Blenders 路径 → small_appliances） | 建议修正注释，重写以代码为准 |
+| 18 | `rules_direct` 分支不可达 | 现有规则库键均被覆盖 | 走 alias 或 mapping；无法实测触发 | 实现时可删除或保留兼容 |
+| 19 | 映射表注释与实现矛盾 | 阅读 `_meta.note` | 注释称 platform_paths「仅用于展示，不参与计算」，但 03 实际按最长路径前缀解析（实测 Blenders 路径 → small_appliances） | 建议修正注释，实现以代码为准 |
 | 20 | `us_fees_key` 对 03 无意义 | 任意输入 | 03 只读 `label/compliance_key/platform_paths`，`us_fees_key` 完全不参与 | 保留字段供 02 使用 |
 
-## 7. 对拍基准（必须可复现）
+## 7. 差分测试基准（必须可复现）
 
 统一前缀（PowerShell 5，逐条执行，勿用 `&&`）：
 
@@ -415,15 +415,15 @@ python Agents/03_Compliance_Agent/scripts/compliance_gate.py --category small_ap
 - **`--list-attributes` 的完整输出**：未逐行核对 13 条标记文案，仅按代码确认格式。
 - **`--have` 归一化对中文标点/全角字符的边界**：只验证了常见英文缩写与中文报告名，未穷举。
 - **重复属性、`--have` 重复条目的最终字段顺序**：未单独实测。
-- **03 的失败 JSON 是否要求 `missing` 语义**：现状恒为 `[]`，重写时需产品确认是否补字段。
+- **03 的失败 JSON 是否要求 `missing` 语义**：现状恒为 `[]`，实现时需产品确认是否补字段。
 
-## 9. 探测发现的实现偏差（已裁决：以旧行为为准）
+## 9. 探测发现的实现偏差（已裁决：以基线行为为准）
 
-本轮黑盒探测（2026-10-30，`office` + `medical_claim` + `--trademark conflict`）发现新实现一度多加了 `blocking_missing == 0` 守卫。**已确认按旧行为修正**：删除该守卫，`ip_blocked > 0` 即输出「阻断来源」行，与 `blocking_missing` 无关（即 §4.5 表格第三行）。
+本轮探测（2026-10-30，`office` + `medical_claim` + `--trademark conflict`）发现当前实现一度多加了 `blocking_missing == 0` 守卫。**已确认按基线行为修正**：删除该守卫，`ip_blocked > 0` 即输出「阻断来源」行，与 `blocking_missing` 无关（即 §4.5 表格第三行）。
 
-| 项 | 旧行为（基准） | 曾出现的偏差 | 现状 |
+| 项 | 基线行为（基准） | 曾出现的偏差 | 现状 |
 |---|---|---|---|
-| 「阻断来源」行触发条件 | `ip_blocked > 0` 即输出 | 额外要求 `blocking_missing == 0`，两者同时存在时不输出 | **已对齐旧行为** |
+| 「阻断来源」行触发条件 | `ip_blocked > 0` 即输出 | 额外要求 `blocking_missing == 0`，两者同时存在时不输出 | **已对齐基线行为** |
 
 - 实现位置：`Agents/03_Compliance_Agent/scripts/compliance_gate.py` 的 `render_human()`（统计行之后的分支，条件为 `if counts["ip_blocked"]:`）。
 - 测试位置：`tests/test_cli.py::ComplianceGateTests::test_blocking_source_line_when_both_causes`（`office` + `medical_claim` + `--trademark conflict`，断言 `阻断级缺失 2` 且 stdout 含「阻断来源：IP 初筛识别到 2 项冲突」）。

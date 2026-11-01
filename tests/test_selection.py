@@ -104,7 +104,7 @@ class NormalizeExportTests(SelectionTestBase):
         self.assertFalse((self.tmp / "inf.normalized.json").exists())
 
     def test_negative_price_kept(self):
-        """负价不做业务拦截（旧行为）：照常写出，由下游判断。"""
+        """负价不做业务拦截（既有行为）：照常写出，由下游判断。"""
         path = self.write("neg.csv", HEADER + "\n" + "B0X,T,B,S,-29.99,100,-2999.00,10,4.0,100,FBA\n")
         result = run(NORMALIZE, [str(path)])
         self.assertEqual(result.returncode, 0)
@@ -113,7 +113,7 @@ class NormalizeExportTests(SelectionTestBase):
         self.assertEqual(payload["items"][0]["price"], -29.99)
 
     def test_bom_and_crlf(self):
-        """BOM + CRLF 必须可读；纯空行跳过（旧行为），不报 asin 为空。"""
+        """BOM + CRLF 必须可读；纯空行跳过（既有行为），不报 asin 为空。"""
         path = self.tmp / "bom.csv"
         with open(path, "w", encoding="utf-8-sig", newline="") as handle:
             handle.write(HEADER + "\r\n" + GOOD_ROW + "\r\n\r\n")
@@ -146,7 +146,7 @@ class BaselineTests(SelectionTestBase):
         self.assertEqual(payload["market"]["total_monthly_revenue"], 1527531.0)
 
     def test_market_metrics_missing_field_exit_2(self):
-        """items 字段不全时停止计算，不猜数（旧行为，exit 2）。"""
+        """items 字段不全时停止计算，不猜数（既有行为，exit 2）。"""
         broken = self.tmp / "broken.json"
         broken.write_text(
             json.dumps(

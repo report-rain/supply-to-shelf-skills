@@ -163,7 +163,7 @@ class InputErrorTests(CreativeTestBase):
         self.assertIn("视频数值字段非法：width='abc'", payload["message"])
 
     def test_corrupt_json_status_input_error(self):
-        """#12：JSON 语法损坏统一为 INPUT_ERROR（旧实现为 INPUT_MISSING）。"""
+        """#12：JSON 语法损坏统一为 INPUT_ERROR（基线实现为 INPUT_MISSING）。"""
         path = self.tmp / "broken.json"
         path.write_text("{bad json", encoding="utf-8")
         result = run(["--spec", str(path), "--platform", "tiktok_us", "--json"])

@@ -1,7 +1,7 @@
 """07 Review Ops Agent 行为测试（review_ops.py：reviews / returns / health）。
 
-覆盖本批有意差异：#9 health 新增 --fail-on-critical（默认关）。
-基线数值取自 docs/spec/07_review_ops.md §7，并已与旧侧黑盒对拍一致。
+覆盖本版本有意差异：#9 health 新增 --fail-on-critical（默认关）。
+基线数值取自 docs/spec/07_review_ops.md §7，并已与基线期望值一致。
 
     python -m unittest discover -s tests -v
 """
@@ -112,7 +112,7 @@ class ReviewsTests(TempFiles):
         self.assertIn("提醒：归因是修补线索，不是甩锅", result.stdout)
 
     def test_half_star_counts_as_negative_and_bucket_two(self):
-        """2.5 星：计入 <3 星的负面计数、分桶归 2，但不参与归因（旧侧口径）。"""
+        """2.5 星：计入 <3 星的负面计数、分桶归 2，但不参与归因（基线口径）。"""
         result = reviews(self.csv("half.csv", "rating,title,body\n2.5,Broke fast,The seal failed after a week.\n"))
         self.assertEqual(result.returncode, 0)
         payload = json.loads(result.stdout)

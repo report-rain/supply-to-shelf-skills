@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""评论、退货与账号健康运营分析（clean-room 重写）。
+"""评论、退货与账号健康运营分析。
 
 行为规格见 docs/spec/07_review_ops.md。纯标准库、无外部配置；关键词与阈值内嵌。
 错误契约沿用 shared.errors：JSON 到 stdout，人类信息到 stderr。
@@ -321,7 +321,7 @@ def run_reviews(path, as_json):
     for item in reviewed:
         distribution[str(int(item["rating"]))] += 1
 
-    # 计数口径为 <3 星（含 2.5 这类小数评分）；归因只对 ≤2 星做，保持旧侧行为。
+    # 计数口径为 <3 星（含 2.5 这类小数评分）；归因只对 ≤2 星做，保持既有行为。
     negatives = [item for item in reviewed if item["rating"] < 3]
     one_two = len(negatives)
     negative_count = one_two

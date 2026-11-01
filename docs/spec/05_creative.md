@@ -1,4 +1,4 @@
-# 05 创意素材规格校验 —— 规格冻结（clean-room 重写基线）
+# 05 创意素材规格校验 —— 规格冻结（实现基线）
 
 > 对象：`Agents/05_Creative_Agent/scripts/asset_check.py`
 > 无配置文件；平台阈值与人工检查清单内嵌在脚本中。图片像素项依赖 Pillow，缺省时降级。
@@ -10,7 +10,7 @@
   - 图片模式：校验单张商品图的文件大小、扩展名、像素尺寸、长宽比、Amazon 主图边缘白底、主体占比，并给出人工复核清单。
   - 视频模式：按 `--spec` 的 JSON 规格校验分辨率、比例、时长、首帧、字幕、格式、帧率，并给出人工复核清单。
   - `--fix`：仅图片，做「近白拉纯白 + 补正方形白底画布」，不做抠图、不生成缺失内容。
-- 依赖：Python 标准库；可选 `PIL.Image`、`PIL.ImageChops`。无上游 JSON/YAML 依赖。
+- 依赖：Python 标准库；可选 `PIL.Image`、`PIL.ImageChops`。无外部 JSON/YAML 依赖。
 - 退出码：`0=通过（可含 WARN）`、`1=存在 FAIL`、`2=输入缺失/不可读/参数错误`。
 
 ## 2. CLI 契约
@@ -32,8 +32,8 @@
 3. `--spec` 与 `--fix` 同时给出 → `[INPUT_MISSING] --fix 仅用于图片，不能与 --spec 同用`。
 4. `--fix` 需要 Pillow；未安装 → `[INPUT_MISSING] --fix 需要 Pillow，当前未安装`。
 5. `--fix` 模式下源图片不存在 → `[INPUT_MISSING] 找不到图片: …`，exit 2。
-6. 不给 `--fix` 时源图片不存在 → 生成一条 `FILE_NOT_FOUND` FAIL，退出码 **2**（旧实现 1；本批 #2 已实施，输出形态不变）。
-7. `--fix` 输出路径与源图片相同（含大小写/相对路径差异）→ `[INPUT_ERROR] --fix 输出路径不能与原图相同，请改用其他输出路径: …`，exit 2（#14；旧实现会覆盖原图）。
+6. 不给 `--fix` 时源图片不存在 → 生成一条 `FILE_NOT_FOUND` FAIL，退出码 **2**（基线实现 1；本版本 #2 已实施，输出形态不变）。
+7. `--fix` 输出路径与源图片相同（含大小写/相对路径差异）→ `[INPUT_ERROR] --fix 输出路径不能与原图相同，请改用其他输出路径: …`，exit 2（#14；基线实现会覆盖原图）。
 8. `--platform` 缺失/非法由 argparse 处理，exit 2，无统一 JSON。
 
 ## 3. 输入契约
@@ -111,7 +111,7 @@
 ```
 
 - 首行按 `mode` 显示「图片/视频规格检查」；平台名固定 `Amazon US` / `TikTok Shop US`。
-- Pillow 缺失且为图片模式时，会产出一条普通 finding `[WARN] PILLOW_MISSING (image): Pillow 未安装，跳过尺寸/比例/白底/主体占比等像素项；安装后重跑`，**计入 counts**（实测 `{PASS:2, WARN:1, FAIL:0}`，exit 0）。旧文档曾描述为「不计入 counts 的额外行」，实测为计数 finding，此处以实测为准。
+- Pillow 缺失且为图片模式时，会产出一条普通 finding `[WARN] PILLOW_MISSING (image): Pillow 未安装，跳过尺寸/比例/白底/主体占比等像素项；安装后重跑`，**计入 counts**（实测 `{PASS:2, WARN:1, FAIL:0}`，exit 0）。既有文档曾描述为「不计入 counts 的额外行」，实测为计数 finding，此处以实测为准。
 
 ### 4.2 失败契约
 
@@ -129,7 +129,7 @@
   - 数值字段非数字/bool → `[INPUT_ERROR] 视频数值字段非法：width='abc'（必须为数字）`
   - 仍为 `INPUT_MISSING` 的：文件不存在、缺字段（`缺少字段: …`）。
 - 文件不存在 → `[INPUT_MISSING] 找不到文件: …`。
-- **本批新增（#3）**：损坏/不可解码图片、0 尺寸图片、视频 0 宽或 0 高，统一输出 `{"status":"INPUT_ERROR", "message":"[INPUT_ERROR] …"}`，exit 2，不再抛 traceback。消息模板：
+- **本版本新增（#3）**：损坏/不可解码图片、0 尺寸图片、视频 0 宽或 0 高，统一输出 `{"status":"INPUT_ERROR", "message":"[INPUT_ERROR] …"}`，exit 2，不再抛 traceback。消息模板：
   - `[INPUT_ERROR] 图片无法解码（文件损坏或非图片）: <path>`
   - `[INPUT_ERROR] 图片尺寸非法（0 像素）: <path>（0x500）`
   - `[INPUT_ERROR] 视频尺寸非法：0×1920（宽高必须为正数）`
@@ -256,7 +256,7 @@
 | 25 | ~~数值 0 能过必填但会除零~~ | `height=0`（或宽高均为 0） | **已实施 #3**：视频宽高 ≤0 → `status=INPUT_ERROR`「视频尺寸非法」exit 2；图片解码后尺寸 ≤0 → `status=INPUT_ERROR`「图片尺寸非法（0 像素）」exit 2 | 已解决 |
 | 26 | ~~`--fix` 输出可与输入同路径~~ | `--fix` 指向原图 | **已实施 #14**：`status=INPUT_ERROR`「--fix 输出路径不能与原图相同…」，exit 2，不覆盖原图 | 已解决 |
 
-## 7. 对拍基准（必须可复现）
+## 7. 差分测试基准（必须可复现）
 
 统一前缀：
 
@@ -333,7 +333,7 @@ python Agents/05_Creative_Agent/scripts/asset_check.py "$env:TEMP\img_tt.png" --
 python Agents/05_Creative_Agent/scripts/asset_check.py no-such.png --platform amazon_us --json
 ```
 
-期望：exit 2（#2，旧实现为 1）；`verdict=FAIL`；`counts={PASS:0,WARN:0,FAIL:1}`；唯一 finding `FILE_NOT_FOUND`；`manual_checks=[]`；无 `missing` 键。
+期望：exit 2（#2，基线实现为 1）；`verdict=FAIL`；`counts={PASS:0,WARN:0,FAIL:1}`；唯一 finding `FILE_NOT_FOUND`；`manual_checks=[]`；无 `missing` 键。
 
 4. **`--fix` 重查（exit 1）**
 
@@ -355,22 +355,22 @@ python Agents/05_Creative_Agent/scripts/asset_check.py no-such.png --platform am
 
 ## 8. 未完整刻画 / 待确认
 
-- ~~视频数值字段（`width:"abc"`、`duration_sec:null`）的异常路径未逐项实测~~ → 已探测并实施 #12：`width:"abc"` 旧实现 `ValueError` traceback、exit 1；新实现 `INPUT_ERROR` + exit 2。
+- ~~视频数值字段（`width:"abc"`、`duration_sec:null`）的异常路径未逐项实测~~ → 已探测并实施 #12：`width:"abc"` 基线实现 `ValueError` traceback、exit 1；当前实现 `INPUT_ERROR` + exit 2。
 - ~~`--fix` 覆盖原图、损坏图片、零尺寸的异常路径仅按代码推导~~ → 已探测：损坏图 / 0 尺寸在 `--fix` 路径同样走 `INPUT_ERROR` + exit 2（#3）；`--fix` 指向原图已改为拒绝覆盖 + exit 2（#14）。
 - `--fix` 对透明 PNG、渐进 JPEG、CMYK 输入的实际输出质量未验证。
 - 动图检测对 WebP/APNG 的支持依赖 Pillow 版本，未单独构造样本。
-- 边缘 2% 边带的实际取样边界（宽/高取整）未做像素级对拍。
+- 边缘 2% 边带的实际取样边界（宽/高取整）未做像素级差分测试。
 - Amazon/TikTok 官方阈值均为「编写时公开口径」，未与卖家中心最新规则逐条核对。
-- `manual_checks` 的文案被视为展示内容，重写时是否逐字保留需产品确认。
-- `--platform` 缺失时的 argparse 输出不属于统一错误契约，未纳入 JSON 对拍。
+- `manual_checks` 的文案被视为展示内容，实现时是否逐字保留需产品确认。
+- `--platform` 缺失时的 argparse 输出不属于统一错误契约，未纳入 JSON 差分测试。
 - 静态 WebP 的实际解码与 `is_animated` 取值依赖 Pillow 编译选项，未验证。
 - 0×0 图片无法用 Pillow 真实构造（`Image.save` 拒绝），0 尺寸分支由 `unittest.mock` 伪造 `Image.size` 覆盖，见 `tests/test_creative.py`。
 
 ### 8.1 探测记录（probe，2026-10-30）
 
-旧实现 = `e:\SKILLS\supply-to-shelf-skills\Agents\05_Creative_Agent\scripts\asset_check.py`，全部命令均带 `$env:PYTHONIOENCODING='utf-8'`。
+基线实现位于独立基线目录，全部命令均带 `$env:PYTHONIOENCODING='utf-8'`。
 
-| # | 命令要点 | 旧实现观察 | 新实现结论 |
+| # | 命令要点 | 基线实现观察 | 当前实现结论 |
 |---|---|---|---|
 | 1 | `no-such.png --platform amazon_us --json` | exit 1、`FILE_NOT_FOUND` FAIL、`manual_checks=[]`、stderr 空 | #2：输出不变，exit 2 |
 | 2 | `no-such.png --platform amazon_us --fix out.png --json` | exit 2、`status=INPUT_MISSING`、message「找不到图片」 | 保留 exit 2 |
@@ -387,5 +387,5 @@ python Agents/05_Creative_Agent/scripts/asset_check.py no-such.png --platform am
 | 13 | spec 文件非 UTF-8（尾部非法字节） | `UnicodeDecodeError` traceback，exit 1 | #12：`INPUT_ERROR`「文件编码不可读（需 UTF-8）」exit 2 |
 | 14 | `--fix` 指向原图 | 覆盖原图后重查，exit 1，JSON 内 `FIX_SAVED` | #14：拒绝覆盖，`INPUT_ERROR` exit 2 |
 
-对拍 harness 将这些场景与 01 的场景一起固化在 `tests/compare_oracle.py`（05 共 21 例，阶段 2.5 新增 4 例）。
+差分测试 harness 将这些场景与 01 的场景一起固化（05 共 21 例，阶段 2.5 新增 4 例）。
 

@@ -1,10 +1,10 @@
 """08 补货与海空运（inventory_plan.py）回归测试。
 
-基线数值取自 docs/spec/08_fulfillment.md §7，并已与旧侧黑盒对拍一致：
+基线数值取自 docs/spec/08_fulfillment.md §7，并已与基线期望值一致：
 calc 补货点 1320 / 可售 15 天 / 建议 2000 / 风险 HIGH；
 compare kg 海运 992、空运 2480、资金占用 3995/45.97/10.51/35.46。
 
-覆盖本批有意差异：#10 --carrying-rate-pct 上限 100（旧侧无上限）。
+覆盖本版本有意差异：#10 --carrying-rate-pct 上限 100（基线无上限）。
 
     python -m unittest discover -s tests -v
 """

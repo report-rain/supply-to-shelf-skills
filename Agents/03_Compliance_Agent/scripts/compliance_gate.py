@@ -55,7 +55,7 @@ def load_map():
 def build_parser():
     parser = CliArgumentParser(
         prog="compliance_gate.py",
-        description="美国市场准入合规初筛（clean-room 重写版）",
+        description="美国市场准入合规初筛",
         error_exit_code=3,
     )
     parser.add_argument("--category")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""补货测算与海空运对比（clean-room 重写）。
+"""补货测算与海空运对比。
 
 行为规格见 docs/spec/08_fulfillment.md。纯计算器，不读文件、不写文件。
 错误契约沿用 shared.errors：JSON 到 stdout，人类信息到 stderr。

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""新旧仓库对拍 harness（第二批起复用）。
+"""基线与当前实现的差分测试 harness（多阶段复用）。
 
 用法：
-    python tests/compare_oracle.py --old-repo ..\\supply-to-shelf-skills
-    python tests/compare_oracle.py --old-repo ..\\supply-to-shelf-skills --agent 01
+    python tests/compare_baseline.py --baseline-repo <基线目录>
+    python tests/compare_baseline.py --baseline-repo <基线目录> --agent 01
 
-对拍口径：
+差分测试口径：
 - 退出码必须一致；
 - stdout 若两侧都能解析为 JSON，则按 JSON 语义比较（忽略 key 顺序；`generated_at` 等时间戳归一为 `<TIME>`）；
 - 否则按文本逐行比较（统一换行、去掉首尾空白）；
@@ -1244,16 +1244,16 @@ def execute(repo, case, work):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="新旧实现黑盒对拍")
-    parser.add_argument("--old-repo", required=True, help="旧仓库根目录")
-    parser.add_argument("--new-repo", default=NEW_REPO, help="新仓库根目录（默认按本文件位置推断）")
+    parser = argparse.ArgumentParser(description="基线与当前实现差分测试")
+    parser.add_argument("--baseline-repo", required=True, help="基线目录根路径")
+    parser.add_argument("--new-repo", default=NEW_REPO, help="当前仓库根目录（默认按本文件位置推断）")
     parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 02 / 03 / 04 / 05 / 06 / 07 / 08）")
-    parser.add_argument("--keep", action="store_true", help="保留下拍临时目录")
+    parser.add_argument("--keep", action="store_true", help="保留本次临时目录")
     args = parser.parse_args()
 
-    old_repo = os.path.abspath(args.old_repo)
+    old_repo = os.path.abspath(args.baseline_repo)
     new_repo = os.path.abspath(args.new_repo)
-    root = tempfile.mkdtemp(prefix="oracle_")
+    root = tempfile.mkdtemp(prefix="diff_")
 
     rows = []
     failures = 0
@@ -1292,7 +1292,7 @@ def main():
             failures += 1
         rows.append((case["id"], old_code, new_code, " / ".join(notes) or "-", verdict, ",".join(intended) or "-"))
 
-    print("{:<28} {:>4} {:>4}  {:<40} {:<15} {}".format("用例", "旧", "新", "差异", "判定", "编号"))
+    print("{:<28} {:>4} {:>4}  {:<40} {:<15} {}".format("用例", "基线", "当前", "差异", "判定", "编号"))
     print("-" * 104)
     for row in rows:
         print("{:<28} {:>4} {:>4}  {:<40} {:<15} {}".format(*row))

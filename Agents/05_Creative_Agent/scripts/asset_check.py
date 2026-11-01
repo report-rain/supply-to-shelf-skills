@@ -756,7 +756,7 @@ def run_image(args):
         findings.extend(check_image(checked_path, args.platform, args.json))
         manual = MANUAL_IMAGE[args.platform]
     elif not os.path.isfile(args.image):
-        # 缺图片：保留旧输出形态（单条 FILE_NOT_FOUND），退出码改为 2（#2）
+        # 缺图片：保留既有输出形态（单条 FILE_NOT_FOUND），退出码改为 2（#2）
         missing_source = True
         add(findings, "FAIL", "FILE_NOT_FOUND", "image", "找不到图片: {}".format(args.image))
         manual = []

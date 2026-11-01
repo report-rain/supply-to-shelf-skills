@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""FTC/FDA 高风险声明关键词扫描（clean-room 重写）。
+"""FTC/FDA 高风险声明关键词扫描。
 
 行为规格见 docs/spec/04_listing.md。纯标准库、无配置文件，规则常量内嵌。
-错误信息统一写 stdout（与 03/07 的 stderr 约定不同，保持旧行为）。
+错误信息统一写 stdout（与 03/07 的 stderr 约定不同，保持基线行为）。
 """
 
 import json

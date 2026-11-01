@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Amazon US / TikTok Shop US Listing 文案确定性自检（clean-room 重写）。
+"""Amazon US / TikTok Shop US Listing 文案确定性自检。
 
 行为规格见 docs/spec/04_listing.md。纯标准库、无配置文件，阈值与词表内嵌。
 错误信息统一写 stdout；非 UTF-8 输入按 #6 明确报错（exit 2）。
