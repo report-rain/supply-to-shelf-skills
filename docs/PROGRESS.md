@@ -27,8 +27,11 @@
 - 状态：完成（`613dcca`）。
 
 ## 批次 4：06 Ads + 08 Fulfillment
-- 范围：`ads_metrics.py`、`fulfillment_plan.py`；有意差异 #10、#11。
-- 状态：待开始。
+- 范围：`ads_metrics.py`、`inventory_plan.py`；有意差异 #10、#11。
+- 测试：157 条通过（新增 `test_ads.py` 23 条、`test_fulfillment.py` 23 条）。
+- 对拍：SAME 48 / INTENDED_DIFF 1 / REGRESSION 0（06：SAME 22；08：SAME 26 + #10）。
+- 修正：06 中间量改为全精度计算、输出取整（TikTok 64.36%）；08 错误文案/help/截止日后缀对齐旧侧。
+- 状态：完成（`d84957f`；推送受网络阻断，待恢复后重试）。
 
 ## 批次 5：整合与交付
 - 范围：全量对拍、端到端复算、文档缺口回填、README/CHANGELOG/LICENSE、CI。
