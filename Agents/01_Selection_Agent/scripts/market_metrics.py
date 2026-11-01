@@ -534,7 +534,7 @@ def main():
     parser.add_argument("--bins", type=int, default=10, help="价格带等宽分箱数，默认 10")
     parser.add_argument("--top", type=int, default=10, help="Top 商品数量，默认 10")
     parser.add_argument(
-        "--trough-threshold", type=float, default=15.0, help="波谷检测跌幅阈值（%），默认 15"
+        "--trough-threshold", type=float, default=15.0, help="波谷检测跌幅阈值（%%），默认 15"
     )
     parser.add_argument("--config-fields", help="可选交叉表字段，目前支持 attributes")
     parser.add_argument("--format", choices=["md", "json", "both"], default="md", help="输出格式，默认 md")

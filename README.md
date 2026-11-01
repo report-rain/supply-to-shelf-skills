@@ -103,9 +103,11 @@ python Agents\08_Fulfillment_Agent\scripts\inventory_plan.py compare --units 100
 - 金额单位为 USD，输出保留 2 位小数；百分比字段带 `_pct`，数值是百分数本身（`25.58` 表示 25.58%）。
 - 日期一律 `YYYY-MM-DD`；02 的旺季 / 燃油与 08 的默认 today 以本地日期或显式 `--ship-date` / `--today` 为准。
 
-### `product_brief` 关键字段
+### `product_brief` 填写模板
 
-本仓库**不附带也不解析** `product_brief` 文件；它指你维护的上游事实清单（Markdown、JSON 或表格均可）。脚本只消费命令行参数。建议至少准备以下字段，再按表映射：
+本仓库**不解析** `product_brief` 文件。字段清单、单位、示例、必填项与对应 CLI 见 [Templates/product_brief_template.md](Templates/product_brief_template.md)。该文件是**给人填写**的事实清单模板，不是程序读取的配置格式；脚本只消费命令行参数（或 CSV / JSON 输入文件）。
+
+下表是模板的速查摘要，正式填写以模板为准：
 
 | brief 字段 | 含义 | 对应 CLI |
 |---|---|---|
@@ -180,6 +182,7 @@ supply-to-shelf-skills/
 ├── CHANGELOG.md
 ├── LICENSE
 ├── requirements.txt
+├── Templates/product_brief_template.md  # product_brief 填写模板（非程序读取格式）
 ├── .github/workflows/ci.yml
 ├── config/category_map.json # 02 / 03 共用类目映射
 ├── shared/                  # 共用层：errors / args / numbers / config / category
@@ -226,7 +229,7 @@ robocopy $src $dst /E /XD .git __pycache__
 
 ## 质量现状
 
-- unittest：**157 条全部通过**（`Ran 157 tests ... OK`）。
+- unittest：**158 条全部通过**（`Ran 158 tests ... OK`），其中 1 条逐个校验 11 个脚本的 `--help`（exit 0 且输出含 `usage`）。
 - 八模块对拍：**SAME 121 / INTENDED_DIFF 24 / REGRESSION 0**。每个差异都能归到 `docs/spec/99_gap_and_decisions.md` 的编号（#1–#14）。
 - CI：GitHub Actions 六矩阵（ubuntu / windows / macos × Python 3.10 / 3.12）全绿，见上方徽章。
 
@@ -244,7 +247,6 @@ python tests\compare_oracle.py --old-repo ..\supply-to-shelf-skills --agent 02
 - **02 关税只含 MFN + Section 301**：不含反倾销 / 反补贴、州税、进口商杂项；未给报关杂费时按 `$0.18/件` 占位并输出 `[WARN]`。
 - **05 主体判定需人工复核**：主体占比按像素 bbox 估算，构图、卖点与「主体是否该出现」仍需人看；`--fix` 只拉白与补方，不改变主体大小。
 - **部分边界缺真实样本**：02 类目路径并列歧义、04 `BRAND_TOO_LATE` 80/81 位次、03 `rules_direct` 分支、06 `status=ERROR` 路径等未构造实测样本，结论按「保持旧样」记录在 99。
-- **已知缺陷**：01 `market_metrics.py --help` 会因帮助文案中的 `%` 触发 argparse 格式化错误；直接执行计算不受影响，本轮文档整理未改代码。
 
 ## 项目来源与许可
 

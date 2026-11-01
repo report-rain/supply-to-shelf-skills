@@ -246,7 +246,24 @@ def read_text_file(path):
         return None
 
 
+HELP_TEXT = """usage: claim_scan.py [-h] [--file FILE | --text TEXT] [--ip-rating IP_RATING] [--json]
+
+FTC/FDA 高风险声明关键词扫描
+
+options:
+  -h, --help            显示帮助并退出
+  --file FILE           待扫描的文本文件（与 --text 互斥）
+  --text TEXT           直接传入待扫描文案（与 --file 互斥）
+  --ip-rating IP_RATING IP 等级，默认 none（如 ipx7）
+  --json                输出 JSON
+"""
+
+
 def main(argv):
+    if "-h" in argv or "--help" in argv:
+        print(HELP_TEXT)
+        return 0
+
     as_json = "--json" in argv
     set_json_mode(as_json)
 

@@ -275,5 +275,28 @@ class ComplianceGateTests(unittest.TestCase):
         self.assertEqual(payload["counts"]["missing"], 0)
 
 
+class HelpContractTests(unittest.TestCase):
+    SCRIPTS = [
+        "Agents/01_Selection_Agent/scripts/normalize_export.py",
+        "Agents/01_Selection_Agent/scripts/market_metrics.py",
+        "Agents/01_Selection_Agent/scripts/opportunity_score.py",
+        "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "Agents/04_Listing_Agent/scripts/listing_lint.py",
+        "Agents/04_Listing_Agent/scripts/claim_scan.py",
+        "Agents/05_Creative_Agent/scripts/asset_check.py",
+        "Agents/06_Ads_Agent/scripts/ads_metrics.py",
+        "Agents/07_Review_Ops_Agent/scripts/review_ops.py",
+        "Agents/08_Fulfillment_Agent/scripts/inventory_plan.py",
+    ]
+
+    def test_all_scripts_help_exit_0_with_usage(self):
+        for script in self.SCRIPTS:
+            with self.subTest(script=script):
+                result = run(ROOT / script, ["--help"])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("usage", result.stdout.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
