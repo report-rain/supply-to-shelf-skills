@@ -46,4 +46,4 @@
 - 文档：`99` 的 D1–D16 全部给出决定，附列 14 项回填（含 02 列表 JSON、04 `100 %`、03 BOM 实测）。
 - 交付物：`README.md`、`SKILL.md`（Trae skill 入口）、`CHANGELOG.md`、`LICENSE`（MIT）、`.github/workflows/ci.yml`（3 平台 × 3.10/3.12）。
 - 测试：157 条通过。
-- 状态：完成（提交信息见下一条）。
+- 状态：完成（`3c83613`）。
