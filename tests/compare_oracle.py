@@ -60,7 +60,9 @@ def run(repo, cwd, rel, args):
     return proc.returncode, proc.stdout or "", proc.stderr or ""
 
 
-def normalize_text(text, work):
+def normalize_text(text, work, repo):
+    text = text.replace(repo, "<REPO>")
+    text = text.replace(repo.replace("\\", "\\\\"), "<REPO>")
     text = text.replace("\r\n", "\n").replace(work, "<WORK>")
     return "\n".join(line.rstrip() for line in text.strip().split("\n"))
 
@@ -72,12 +74,22 @@ def try_json(text):
         return None
 
 
-def compare_stdout(old_out, new_out, old_work, new_work):
+def scrub(value, repo):
+    if isinstance(value, str):
+        return value.replace(repo, "<REPO>")
+    if isinstance(value, list):
+        return [scrub(item, repo) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub(item, repo) for key, item in value.items()}
+    return value
+
+
+def compare_stdout(old_out, new_out, old_work, new_work, old_repo, new_repo):
     old_json = try_json(old_out)
     new_json = try_json(new_out)
     if old_json is not None and new_json is not None:
-        return old_json == new_json, "json"
-    return normalize_text(old_out, old_work) == normalize_text(new_out, new_work), "text"
+        return scrub(old_json, old_repo) == scrub(new_json, new_repo), "json"
+    return normalize_text(old_out, old_work, old_repo) == normalize_text(new_out, new_work, new_repo), "text"
 
 
 def compare_outputs(case, old_work, new_work):
@@ -153,6 +165,14 @@ SELECTION = "Agents/01_Selection_Agent"
 CREATIVE = "Agents/05_Creative_Agent"
 LISTING = "Agents/04_Listing_Agent"
 REVIEW = "Agents/07_Review_Ops_Agent"
+ADS = "Agents/06_Ads_Agent"
+FULFILL = "Agents/08_Fulfillment_Agent"
+
+ADS_ARGS = ["--platform", "amazon_us", "--price", "29.99", "--product-cost", "7.99",
+            "--referral", "15", "--fba-fee", "5.93", "--ads-pct", "10",
+            "--returns-pct", "3", "--target-acos", "25"]
+DIAG_ARGS = ["--platform", "amazon_us", "--price", "29.99", "--product-cost", "7.99",
+             "--referral", "15", "--fba-fee", "5.93", "--returns-pct", "3", "--target-acos", "25"]
 
 LISTING_BASE = {
     "brand": "NordPulse",
@@ -699,6 +719,309 @@ CASES = [
         "args": ["health", "--file", "broken.json", "--json"],
         "make": {"broken.json": "{bad json"},
     },
+    {
+        "id": "06 calc 完整 JSON",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc"] + ADS_ARGS + [
+            "--cvr", "8", "--ad-spend", "799.27", "--total-sales", "2309.23", "--json"],
+    },
+    {
+        "id": "06 calc 完整文本",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc"] + ADS_ARGS + [
+            "--cvr", "8", "--ad-spend", "799.27", "--total-sales", "2309.23"],
+    },
+    {
+        "id": "06 calc 最小 JSON",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc"] + ADS_ARGS + ["--json"],
+    },
+    {
+        "id": "06 calc 最小文本",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc"] + ADS_ARGS,
+    },
+    {
+        "id": "06 calc 负贡献",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc", "--platform", "amazon_us", "--price", "29.99", "--product-cost", "20",
+                 "--referral", "15", "--fba-fee", "5.93", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-acos", "25"],
+    },
+    {
+        "id": "06 calc TikTok JSON",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc", "--platform", "tiktok_us", "--price", "29.99", "--product-cost", "7.99",
+                 "--referral", "6", "--fba-fee", "0", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-acos", "25", "--json"],
+    },
+    {
+        "id": "06 calc referral 0",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc", "--platform", "amazon_us", "--price", "29.99", "--product-cost", "7.99",
+                 "--referral", "0", "--fba-fee", "5.93", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-acos", "25", "--json"],
+    },
+    {
+        "id": "06 calc price 0",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc", "--platform", "amazon_us", "--price", "0", "--product-cost", "7.99",
+                 "--referral", "15", "--fba-fee", "5.93", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-acos", "25", "--json"],
+    },
+    {
+        "id": "06 calc 平台非法",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["calc", "--platform", "ebay_us", "--json"],
+    },
+    {
+        "id": "06 --json 在子命令前",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["--json", "calc"],
+    },
+    {
+        "id": "06 无子命令",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": [],
+    },
+    {
+        "id": "06 diagnose 样例 JSON",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "sample-campaign.csv"] + DIAG_ARGS + ["--json"],
+        "files": {"sample-campaign.csv": ADS + "/examples/sample-campaign.csv"},
+    },
+    {
+        "id": "06 diagnose 样例文本",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "sample-campaign.csv"] + DIAG_ARGS,
+        "files": {"sample-campaign.csv": ADS + "/examples/sample-campaign.csv"},
+    },
+    {
+        "id": "06 diagnose 零花费",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "zero.csv"] + DIAG_ARGS + ["--json"],
+        "make": {"zero.csv": "campaign,impressions,clicks,spend,orders,sales\nZero,5000,100,0,0,0\n"},
+    },
+    {
+        "id": "06 diagnose 负贡献",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "bad.csv", "--platform", "amazon_us", "--price", "29.99",
+                 "--product-cost", "20", "--referral", "15", "--fba-fee", "5.93",
+                 "--returns-pct", "3", "--target-acos", "25", "--json"],
+        "make": {"bad.csv": "campaign,impressions,clicks,spend,orders,sales\nBad,5000,100,50,0,0\n"},
+    },
+    {
+        "id": "06 diagnose 缺退货率",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "bad.csv"] + DIAG_ARGS + ["--json"],
+        "make": {"bad.csv": "campaign,impressions,clicks,spend,orders,sales\nBad,5000,100,50,0,0\n"},
+    },
+    {
+        "id": "06 diagnose 缺文件",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "no-such.csv"] + DIAG_ARGS + ["--json"],
+    },
+    {
+        "id": "06 diagnose 缺列",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "nocol.csv"] + DIAG_ARGS + ["--json"],
+        "make": {"nocol.csv": "campaign,impressions,clicks,spend,orders\nX,100,10,1,1\n"},
+    },
+    {
+        "id": "06 diagnose 负花费",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "neg.csv"] + DIAG_ARGS + ["--json"],
+        "make": {"neg.csv": "campaign,impressions,clicks,spend,orders,sales\nX,100,10,-1,1,1\n"},
+    },
+    {
+        "id": "06 diagnose 空 CSV",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "empty.csv"] + DIAG_ARGS + ["--json"],
+        "make": {"empty.csv": "campaign,impressions,clicks,spend,orders,sales\n"},
+    },
+    {
+        "id": "06 diagnose 全局 CVR 兜底",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "zero.csv"] + DIAG_ARGS + ["--cvr", "8", "--json"],
+        "make": {"zero.csv": "campaign,impressions,clicks,spend,orders,sales\nZero,5000,100,0,0,0\n"},
+    },
+    {
+        "id": "06 diagnose ads-pct",
+        "script": ADS + "/scripts/ads_metrics.py",
+        "args": ["diagnose", "--file", "zero.csv"] + DIAG_ARGS + ["--ads-pct", "10", "--json"],
+        "make": {"zero.csv": "campaign,impressions,clicks,spend,orders,sales\nZero,5000,100,0,0,0\n"},
+    },
+    {
+        "id": "08 calc 完整 JSON",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--safety-days", "21",
+                 "--stock", "300", "--moq", "500", "--inbound-interval-days", "30",
+                 "--unit-cost", "7.99", "--today", "2026-10-30", "--json"],
+    },
+    {
+        "id": "08 calc 完整文本",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--safety-days", "21",
+                 "--stock", "300", "--moq", "500", "--inbound-interval-days", "30",
+                 "--unit-cost", "7.99", "--today", "2026-10-30"],
+    },
+    {
+        "id": "08 calc 零销量 JSON",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "0", "--lead-time-days", "45", "--stock", "300",
+                 "--moq", "500", "--unit-cost", "7.99", "--today", "2026-10-30", "--json"],
+    },
+    {
+        "id": "08 calc 零销量文本",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "0", "--lead-time-days", "45", "--stock", "0",
+                 "--moq", "500", "--today", "2026-10-30"],
+    },
+    {
+        "id": "08 calc 中等风险",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--safety-days", "21",
+                 "--stock", "900", "--moq", "500", "--inbound-interval-days", "30",
+                 "--unit-cost", "7.99", "--today", "2026-10-30"],
+    },
+    {
+        "id": "08 calc 低风险",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--safety-days", "21",
+                 "--stock", "2000", "--moq", "500", "--inbound-interval-days", "30",
+                 "--unit-cost", "7.99", "--today", "2026-10-30"],
+    },
+    {
+        "id": "08 calc 默认参数 JSON",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--stock", "300",
+                 "--moq", "500", "--today", "2026-10-30", "--json"],
+    },
+    {
+        "id": "08 calc 交期 0",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "0", "--moq", "500", "--json"],
+    },
+    {
+        "id": "08 calc 库存负数",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--stock", "-5",
+                 "--moq", "500", "--json"],
+    },
+    {
+        "id": "08 calc MOQ 0",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--moq", "0", "--json"],
+    },
+    {
+        "id": "08 calc 单件成本 0",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--moq", "500",
+                 "--unit-cost", "0", "--json"],
+    },
+    {
+        "id": "08 calc 月份越界",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--moq", "500",
+                 "--today", "2026-13-01", "--json"],
+    },
+    {
+        "id": "08 calc 非零填充日期",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["calc", "--daily-sales", "20", "--lead-time-days", "45", "--moq", "500",
+                 "--today", "2026-1-1", "--json"],
+    },
+    {
+        "id": "08 compare kg JSON",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "500", "--weight-kg", "0.62", "--cbm-per-unit", "0.00178",
+                 "--sea-rate-per-kg", "3.2", "--air-rate-per-kg", "8.0", "--sea-days", "35",
+                 "--air-days", "8", "--unit-cost", "7.99", "--today", "2026-10-30", "--json"],
+    },
+    {
+        "id": "08 compare kg 文本",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "500", "--weight-kg", "0.62", "--cbm-per-unit", "0.00178",
+                 "--sea-rate-per-kg", "3.2", "--air-rate-per-kg", "8.0", "--sea-days", "35",
+                 "--air-days", "8", "--unit-cost", "7.99", "--today", "2026-10-30"],
+    },
+    {
+        "id": "08 compare CBM JSON",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "100", "--weight-kg", "0.62", "--cbm-per-unit", "0.00178",
+                 "--sea-rate-per-cbm", "60", "--air-rate-per-kg", "8", "--sea-days", "35",
+                 "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 空运更慢",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "500", "--weight-kg", "0.62", "--cbm-per-unit", "0.00178",
+                 "--sea-rate-per-kg", "0.35", "--air-rate-per-kg", "0.5", "--sea-days", "8",
+                 "--air-days", "35", "--json"],
+    },
+    {
+        "id": "08 compare 负溢价",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "1", "--weight-kg", "1", "--sea-rate-per-cbm", "60",
+                 "--air-rate-per-kg", "4", "--sea-days", "35", "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 中溢价",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "500", "--weight-kg", "0.5", "--cbm-per-unit", "0.00178",
+                 "--sea-rate-per-kg", "3.2", "--air-rate-per-kg", "5", "--sea-days", "35",
+                 "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 体积重",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "500", "--weight-kg", "0.5", "--cbm-per-unit", "0.02",
+                 "--sea-rate-per-kg", "3.2", "--air-rate-per-kg", "3.5", "--sea-days", "35",
+                 "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 零 CBM",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "100", "--weight-kg", "1", "--sea-rate-per-cbm", "60",
+                 "--air-rate-per-kg", "8", "--sea-days", "35", "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 缺海运价",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "100", "--weight-kg", "1", "--air-rate-per-kg", "8",
+                 "--sea-days", "35", "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare units 1.5",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "1.5", "--weight-kg", "1", "--air-rate-per-kg", "8",
+                 "--sea-rate-per-kg", "3", "--sea-days", "35", "--air-days", "8", "--json"],
+    },
+    {
+        "id": "08 compare 资金费率负数",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "100", "--weight-kg", "1", "--sea-rate-per-kg", "3",
+                 "--air-rate-per-kg", "8", "--sea-days", "35", "--air-days", "8",
+                 "--carrying-rate-pct", "-1", "--json"],
+    },
+    {
+        "id": "08 compare 资金费率 200",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["compare", "--units", "100", "--weight-kg", "1", "--sea-rate-per-kg", "3",
+                 "--air-rate-per-kg", "8", "--sea-days", "35", "--air-days", "8",
+                 "--carrying-rate-pct", "200", "--json"],
+        "intended": ["#10"],
+    },
+    {
+        "id": "08 无子命令",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": [],
+    },
+    {
+        "id": "08 --json 在子命令前",
+        "script": FULFILL + "/scripts/inventory_plan.py",
+        "args": ["--json", "calc"],
+    },
 ]
 
 
@@ -742,7 +1065,7 @@ def main():
     parser = argparse.ArgumentParser(description="新旧实现黑盒对拍")
     parser.add_argument("--old-repo", required=True, help="旧仓库根目录")
     parser.add_argument("--new-repo", default=NEW_REPO, help="新仓库根目录（默认按本文件位置推断）")
-    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 04 / 05 / 07）")
+    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 04 / 05 / 06 / 07 / 08）")
     parser.add_argument("--keep", action="store_true", help="保留下拍临时目录")
     args = parser.parse_args()
 
@@ -765,7 +1088,7 @@ def main():
         notes = []
         if old_code != new_code:
             notes.append("exit {}→{}".format(old_code, new_code))
-        same, kind = compare_stdout(old_out, new_out, old_work, new_work)
+        same, kind = compare_stdout(old_out, new_out, old_work, new_work, old_repo, new_repo)
         if not same:
             notes.append("{} 不一致".format(kind))
         notes.extend(compare_outputs(case, old_work, new_work))
@@ -773,7 +1096,7 @@ def main():
             ncode, nout, _ = new_extra[index]
             if ocode != ncode:
                 notes.append("附加 #{} exit {}→{}".format(index + 1, ocode, ncode))
-            extra_same, extra_kind = compare_stdout(oout, nout, old_work, new_work)
+            extra_same, extra_kind = compare_stdout(oout, nout, old_work, new_work, old_repo, new_repo)
             if not extra_same:
                 notes.append("附加 #{} {} 不一致".format(index + 1, extra_kind))
 

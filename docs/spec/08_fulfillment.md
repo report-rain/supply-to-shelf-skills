@@ -58,7 +58,7 @@
 | `--sea-days` | int | 是 | — | `> 0` | 海运时效（天） |
 | `--air-days` | int | 是 | — | `> 0` | 空运时效（天）；可大于海运天数，不做校验 |
 | `--unit-cost` | float | 否 | `None` | `> 0`（给出时） | 单件货值；用于在途资金占用 |
-| `--carrying-rate-pct` | float | 否 | `12` | `>= 0` | 年化资金成本%；0 合法，无上限 |
+| `--carrying-rate-pct` | float | 否 | `12` | `0–100` | 年化资金成本%；0 合法，超过 100 失败（#10） |
 | `--currency` | str | 否 | `USD` | 任意字符串 | 仅展示 |
 | `--today` | str | 否 | 本机当天 | ISO `YYYY-MM-DD` | 基准日，用于 ETA |
 | `--json` | flag | 否 | `false` | — | 结构化输出 |
@@ -101,7 +101,7 @@
 | `sea_rate_per_cbm` | 海运立方价（LCL） | 金额/CBM | 0/负 → 失败；优先于 kg 价 |
 | `air_rate_per_kg` | 空运公斤价（按计费重） | 金额/kg | 0/负 → 失败 |
 | `sea_days` / `air_days` | 运输时效 | 天 | 0/负 → 失败 |
-| `carrying_rate_pct` | 年化资金成本 | %/年 | 0 允许；负 → 失败 |
+| `carrying_rate_pct` | 年化资金成本 | %/年 | 0 允许；负或 >100 → 失败 |
 
 ### 3.3 日期口径
 
@@ -110,7 +110,7 @@
 - `order_deadline = expected_stockout_date − lead_time_days`（日历日）。
 - `days_until_deadline = (order_deadline − today).days`，可为负；**等于 0 不算已过**。
 - `eta = today + sea_days / air_days`（海运、空运分别算）。
-- `--today` 非法（格式错、月份越界、未零填充的 `2026-1-1`）→ 退出 2。
+- `--today` 非法（格式错、月份越界、未零填充的 `2026-1-1`）→ 退出 2，信息统一为 `--today 需为 YYYY-MM-DD，收到：<原值>`。
 
 ## 4. 输出契约
 
@@ -191,7 +191,7 @@
 
 ### 4.3 人类可读输出
 
-- `calc`：标题含基准日；参数行（日均/交期/安全天数/库存/MOQ/发运间隔）；补货点；当前可售天数；预计断货日；建议下单量（注明按 MOQ 向上取整）；下单截止日（已过 N 天需立即下单 / 剩余 N 天）；下单后覆盖天数；资金占用（有 unit-cost 时）；风险等级；提示；口径说明。
+- `calc`：标题含基准日；参数行（日均/交期/安全天数/库存/MOQ/发运间隔）；补货点；当前可售天数；预计断货日；建议下单量（注明按 MOQ 向上取整）；下单截止日（仅当已过时追加「（已过 N 天，需立即下单）」，未过时无后缀）；下单后覆盖天数；资金占用（有 unit-cost 时）；风险等级；提示；口径说明。
 - `compare`：标题；单件重量/CBM、合计重量/CBM、密度；海运金额/单件/时效/ETA/计费口径；空运同构；差额/单件/百分比/时效差；每天买时间成本；资金占用（有 unit-cost 时）；建议；提示；口径。
 - 缺值（null）在人类输出中不显示对应日期/资金行或显示 `-`。
 
@@ -235,9 +235,10 @@
 | `air_rate_per_kg <= 0` | `["air_rate_per_kg"]` | 2 |
 | `sea_days/air_days` 任一 <= 0 | `["sea_days","air_days"]` | 2 |
 | `carrying_rate_pct < 0` | `["carrying_rate_pct"]` | 2 |
+| `carrying_rate_pct > 100`（#10） | `["carrying_rate_pct"]` | 2 |
 | `--today` 非法 | `["today"]` | 2 |
 | argparse 类型/未知参数 | `[]` | 2 |
-| 无子命令 | `[]` | 2 |
+| 无子命令 | `["command"]` | 2 |
 | 成功（含 HIGH/错过窗口/负时效差） | — | 0 |
 
 ## 5. 计算规则
@@ -319,14 +320,15 @@
 | 单件成本为 0 | `--unit-cost 0` | 退出 2；未给与给 0 语义不同 | 保留；文档需强调 |
 | 日期默认 today | 不传 `--today` | 取本机当天（实测 2026-10-30），所有日期随之平移 | 保留；对拍必须显式传日期 |
 | 非零填充日期 | `--today 2026-1-1` | 退出 2；`missing=["today"]` | 保留严格 ISO |
-| 截止日等号 | 可售天数恰好等于 lead | `order_deadline`=今天，`order_deadline_passed=false`、`days_until_deadline=0`；风险 MEDIUM（实跑 900 件） | 修正或明确：今天下单已无缓冲，业务上可视为已过 |
+| 截止日等号 | 可售天数恰好等于 lead | `order_deadline`=今天，`order_deadline_passed=false`、`days_until_deadline=0`；风险 MEDIUM（实跑 900 件） | 保持旧样；文字不追加后缀（本批不改） |
+| 资金费率上限 | `--carrying-rate-pct 200` | 旧侧退出 0 并算出 2 倍资金成本；新侧按 #10 退出 2 | 有意差异 #10 |
 | 风险严格边界 | 可售天数 = lead + safety | `risk_level=LOW`；只有严格小于才升档 | 保留；文档写明 |
 | 建议量为 0 | 库存 ≥ 目标水位 | 建议 0，覆盖天数仍按现有库存输出，资金 0.0（有 unit-cost） | 保留；不做库存上限截断 |
 | 资金口径 | 给 unit-cost | 只算「建议量 × 单件成本」，不含运费、关税、头程；在途资金另算 | 保留；需与 02 落地成本区分 |
 | compare 空运更慢 | air_days > sea_days | 退出 0；`days_saved` 为负、`cost_per_day_saved=null`；建议「无时效优势」，即使溢价 150%（实跑） | 保留；建议文案提示时效数据可能填反 |
 | compare 负溢价 | 空运总价低于海运 | 退出 0；`premium_pct` 为负；建议落入「≤25%」分支，仍称「溢价可接受」（实跑 -96.7%） | 修正文案：负溢价应称「空运更便宜」 |
 | compare 计费口径 | 体积重 > 实重 | 空运按体积重计；notes 有提示；CBM=0 时体积重为 0 | 保留；空运 167 kg/CBM 需与货代确认 |
-| 示例文档数字失真 | `examples/portable_blender_replenishment.md` | 命令传 `--unit-cost 7.99`，但文档写货值 4335、海运 49.88、空运 11.40、差额 38.48；实跑为 3995、45.97、10.51、35.46（按 8.67 才算 4335） | 修正示例：改为实跑值或把 unit-cost 改 8.67 |
+| 示例文档数字失真 | 旧侧 `examples/portable_blender_replenishment.md` | 命令传 `--unit-cost 7.99`，但文档写货值 4335、海运 49.88、空运 11.40、差额 38.48；实跑为 3995、45.97、10.51、35.46（按 8.67 才算 4335） | 已按 #11 以实跑值为准（本文 §5.2、§7.2）；不复制旧示例原文 |
 | 无子命令 | 只运行脚本 | 退出 2；帮助在 stdout；stderr 「缺少子命令」 | 保留 |
 | 子命令前写 `--json` | `... --json calc ...` | 顶层不识别，退出 2；仍输出 JSON 错误体 | 保留；文档需写明位置 |
 | 成功恒 0 | HIGH、错过窗口、负时效差 | 退出 0（实跑） | 保留；下游按 risk_level/字段判断 |
@@ -401,6 +403,7 @@ python scripts/inventory_plan.py compare --units 100 --weight-kg 0.62 ^
 | compare 空运更便宜（1 件、0 CBM、海运 60、空运 4×0.5=2） | 退出 0；`premium_pct` 为负；建议仍称「溢价可接受」 |
 | compare `--units 1.5` | argparse 退出 2；`missing=[]` |
 | compare `--carrying-rate-pct -1` | 退出 2；`missing=["carrying_rate_pct"]` |
+| compare `--carrying-rate-pct 200` | 退出 2；`missing=["carrying_rate_pct"]`（#10，旧侧退出 0） |
 | 只运行脚本 | 退出 2；帮助 stdout + stderr「缺少子命令」 |
 
 ### 7.5 运输建议分支对拍
@@ -415,12 +418,12 @@ python scripts/inventory_plan.py compare --units 100 --weight-kg 0.62 ^
 
 ## 8. 未完整刻画/待确认
 
-- 示例文档 `portable_blender_replenishment.md` 的 compare 资金数字与命令不一致，来源（是否历史 unit-cost=8.67）未确认；应以本文 §7 实跑值为准。
+- ~~示例文档 compare 资金数字与命令不一致~~ 已由 #11 落定：以实跑值 3995 / 45.97 / 10.51 / 35.46 为准（见 §7.2）。
 - 空运体积重系数 167 kg/CBM 为常量，是否需要按货代/航线可配置未确认。
 - LCL 最低 1 CBM 是否对所有海运渠道成立未确认。
 - `days_of_cover` 输出 1 位但断货日向下取整的展示口径是否会让用户误读未确认。
 - 截止日 `days=0` 不算已过、风险严格边界（等于 lead 记 MEDIUM）是否符合业务习惯未确认。
-- `--carrying-rate-pct` 无上限、可传 1000，是否应设上限未确认。
+- ~~`--carrying-rate-pct` 无上限~~ 已由 #10 落定为 0–100（上限 100，0 仍合法）。
 - `--currency` 不校验 ISO 代码，是否应限制枚举未确认。
 - `status="ERROR"` 无触发路径；是否保留未确认。
 - 未测试超大批量/极端小数带来的浮点误差（如 0.1 CBM 与 167 的乘积）。

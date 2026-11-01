@@ -94,7 +94,7 @@
 - 影响：`05_creative.md` §5、§8。
 
 ## D16. 08 海运计费与最低收费
-- 现状：计费重 `max(实重, 体积重)`，存在 167 kg/CBM 换算与 1 CBM 最低收费，但不可配置；示例文档资金数字与命令实跑存在 4995 vs 4335 的出入。
+- 现状：计费重 `max(实重, 体积重)`，存在 167 kg/CBM 换算与 1 CBM 最低收费，但不可配置；旧示例文档资金数字与命令实跑不一致（#11 已按实算 3995 / 45.97 / 10.51 / 35.46 落定，本项只剩「是否可配置」）。
 - A 保持常量。B 暴露为参数并修示例。利：可复核；弊：参数面扩大。
 - 影响：`08_fulfillment.md` §5、§8。
 
@@ -103,15 +103,15 @@
 - 02：HTS 短前缀匹配、类目路径歧义样例、旧 referral 结构分支、matrix 非法 season、列表命令 JSON。
 - 03：并列前缀歧义文案、rules.json BOM、`rules_direct` 触发。
 - 04：`100 %`（数字与 `%` 之间带空格）是否命中；`BRAND_TOO_LATE` 恰在第 80/81 字符的位次边界未单独构造。（GBK 解码已由 #6 落定，80/81、200/201 已由单测与对拍固定。）
-- 05：~~损坏图/0 尺寸退出码~~（第二批实施 #3 已解决）、静态 WebP、视频数值字段非法（`width:"abc"`）仍 traceback。
-- 06：`status=ERROR` 无触发路径；费率数值未被实际引用。
+- 05：~~损坏图/0 尺寸退出码~~（#3 已解决）、~~视频数值字段非法（`width:"abc"`）traceback~~（#12 已解决）；静态 WebP 仍待确认。
+- 06：`status=ERROR` 无触发路径；费率数值未被实际引用。（中间量「全精度计算、输出取整」已由批次 4 对拍固定，见 `06_ads.md` §5.1。）
 - 07：行级错误是否中止整表（按现状记录，需补一例反证）。
-- 08：`days=0` 截止日口径、`--carrying-rate-pct` 无上限、`--currency` 不校验、示例文档数字不一致。
+- 08：`days=0` 截止日口径、`--currency` 不校验；`--carrying-rate-pct` 上限已由 #10 落定，示例数字已由 #11 按实跑值固化。
 
 ## 有意差异（intended diffs）
 
 > 本清单是用户明确批准的、允许偏离旧实现的行为集合。**清单之外**的任何 stdout/stderr/退出码/JSON 差异一律视为回归。
-> 批次 1（骨架 + 02 + 03）已实施 #8；批次 2（01 + 05）已实施 #1–#5；批次 2.5 已实施 #12–#14；批次 3（04 + 07）已实施 #6、#7、#9；#10–#11 待批次 4（08）落地。
+> 批次 1（骨架 + 02 + 03）已实施 #8；批次 2（01 + 05）已实施 #1–#5；批次 2.5 已实施 #12–#14；批次 3（04 + 07）已实施 #6、#7、#9；批次 4（06 + 08）已实施 #10–#11。
 
 | # | 模块 | 旧行为 | 新行为 | 依据 | 影响面 | 本轮状态 |
 |---|---|---|---|---|---|---|
@@ -124,8 +124,8 @@
 | 7 | 04 | 未校验 A+ 模块顺序，缺模块/乱序仍可通过 | 按文档承诺的顺序校验；缺必需模块或顺序错误判 FAIL | 用户清单 §7 | 04 A+ 校验结果（原先可通过的组合可能转为 FAIL）；其余校验不变 | **已实施**：`listing_lint.py` 的 `check_aplus_order()`（7 阶段识别；缺主视觉/包装清单或序非递增 → `APLUS_ORDER` FAIL）；测试 `tests/test_listing.py::ListingLintAmazonTests::test_aplus_out_of_order_fails`/`test_aplus_missing_hero_fails` |
 | 8 | 02 | 未显式传 `--customs-fee-per-unit` 时，note 为「未提供 --customs-fee-per-unit，报关杂费按默认 $0.18/件计算」，JSON 无占位标记 | note 前面加 `[WARN] `；`inputs` 新增 `customs_fee_placeholder: true/false`（显式传入时为 false） | 用户清单 §8：占位值须显式告警并可机读识别 | calc 的 `notes[]` 与 `inputs`；matrix 的 `rows[].notes[]` 与 `rows[].inputs`；其余字段与数值不变 | **已实施** |
 | 9 | 07 | 无此开关，CRITICAL 也退出 0 | 新增 `--fail-on-critical`：开启时 CRITICAL 退出 1；默认关闭保持旧行为 | 用户清单 §9 | 07 默认路径不变；仅新开关生效时改变退出码 | **已实施**：`Agents/07_Review_Ops_Agent/scripts/review_ops.py`（`health` 子命令退出码 `1 if (fail_on_critical and grade == "CRITICAL") else 0`）；测试 `tests/test_review_ops.py::HealthTests::test_fail_on_critical_flag` |
-| 10 | 08 | `--carrying-rate-pct` 无上下限校验 | 取值校验 0–100，越界 exit 2 | 用户清单 §10 | 08 参数校验；合法区间内结果不变 | 待实施 |
-| 11 | 08 | 示例文档写 4995，脚本实算 4335 | 以脚本实算为准修正文档 | 用户清单 §11 | 仅文档；脚本行为不变 | 待实施 |
+| 10 | 08 | `--carrying-rate-pct` 无上限（负值已拒绝） | 取值校验 0–100，负值与 >100 各自 exit 2；0 仍合法 | 用户清单 §10 | 08 参数校验；合法区间内结果不变 | **已实施**：`inventory_plan.py` 的 `run_compare()`（`<0` 保留旧文案，`>100` 报「必须在 0–100 之间」）；测试 `tests/test_fulfillment.py::CompareTests::test_carrying_rate_above_hundred_fails`、`test_carrying_rate_zero_is_allowed`；对拍用例「08 compare 资金费率 200」标记 INTENDED #10 |
+| 11 | 08 | 旧示例文档资金数字与命令不一致（写 4995/4335，实算 3995） | 以脚本实算为准：`units=500`、`unit-cost=7.99` → 货值 3995、海运资金 45.97、空运 10.51、差额 35.46 | 用户清单 §11 | 仅文档；脚本行为不变 | **已实施**：`docs/spec/08_fulfillment.md` §5.2、§6、§7.2、§8 均以实跑值为准；不复制旧文档原文 |
 | 12 | 05 | 视频数值字段非法 / JSON 损坏 / 编码不可读 → traceback + exit 1 | 全部输入异常统一 `status=INPUT_ERROR` + exit 2，无 traceback | 无人值守指令阶段 2.5 | 05 视频 spec 解析与数值校验；成功路径不变 | **已实施**：`asset_check.py` 的 `video_number()`、`run_video()` 异常分支；测试 `tests/test_creative.py::InputErrorTests` 四条 |
 | 13 | 01 | 同价且 Σ销量=0 → `ZeroDivisionError` exit 1 | 转业务告警：`meta.status="WARNING"`、`price_bands=[]`、exit 0 | 无人值守指令阶段 2.5 | market 该边界；其他样本输出不变 | **已实施**：`market_metrics.py` 的 `price_bands()`/`compute()`；测试 `tests/test_selection.py::BaselineTests::test_market_metrics_same_price_zero_sales_warns` |
 | 14 | 05 | `--fix` 指向原图会覆盖源文件 | 拒绝覆盖，`status=INPUT_ERROR` + exit 2 | 无人值守指令阶段 2.5 | 05 `--fix` 同路径分支；其他路径不变 | **已实施**：`asset_check.py` 的 `run_image()`；测试 `tests/test_creative.py::InputErrorTests::test_fix_same_path_rejected` |
