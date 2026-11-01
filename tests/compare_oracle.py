@@ -7,7 +7,7 @@
 
 对拍口径：
 - 退出码必须一致；
-- stdout 若两侧都能解析为 JSON，则按 JSON 语义比较（忽略 key 顺序）；
+- stdout 若两侧都能解析为 JSON，则按 JSON 语义比较（忽略 key 顺序；`generated_at` 等时间戳归一为 `<TIME>`）；
 - 否则按文本逐行比较（统一换行、去掉首尾空白）；
 - 落盘产物（如 normalized.json）按 JSON 语义比较；
 - 差异只有在 `intended`（#1–#14）里登记过才算 INTENDED_DIFF，否则记为 REGRESSION，
@@ -74,13 +74,19 @@ def try_json(text):
         return None
 
 
+VOLATILE_KEYS = {"generated_at"}
+
+
 def scrub(value, repo):
     if isinstance(value, str):
         return value.replace(repo, "<REPO>")
     if isinstance(value, list):
         return [scrub(item, repo) for item in value]
     if isinstance(value, dict):
-        return {key: scrub(item, repo) for key, item in value.items()}
+        return {
+            key: "<TIME>" if key in VOLATILE_KEYS else scrub(item, repo)
+            for key, item in value.items()
+        }
     return value
 
 
@@ -1022,6 +1028,182 @@ CASES = [
         "script": FULFILL + "/scripts/inventory_plan.py",
         "args": ["--json", "calc"],
     },
+    {
+        "id": "02 calc 主基准 JSON",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--ship-date", "2026-10-30", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 calc 主基准 文本",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--ship-date", "2026-10-30", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500"],
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 calc 非旺季 JSON",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--season", "nonpeak", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 calc 非旺季无燃油 JSON",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--season", "nonpeak", "--no-fuel-surcharge", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 calc HTS 短前缀",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--ship-date", "2026-10-30", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 calc 缺参",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--json"],
+    },
+    {
+        "id": "02 calc factory 负数",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "-1", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--ship-date", "2026-10-30", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+    },
+    {
+        "id": "02 calc ship-date 非法",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["calc", "--factory-rmb", "38", "--fx", "0.14", "--freight-per-unit", "1.60",
+                 "--hts", "8509.40", "--category-key", "small_appliances", "--weight-g", "620",
+                 "--price", "29.99", "--ship-date", "2026-13-01", "--ads-pct", "10",
+                 "--returns-pct", "3", "--target-margin", "25", "--moq", "500", "--json"],
+    },
+    {
+        "id": "02 matrix 样例 JSON",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["matrix", "--file", "sample-skus.csv", "--fx", "0.14", "--json"],
+        "files": {"sample-skus.csv": "Agents/02_Cost_Pricing_Agent/examples/sample-skus.csv"},
+        "intended": ["#8"],
+    },
+    {
+        "id": "02 matrix 样例 文本",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["matrix", "--file", "sample-skus.csv", "--fx", "0.14"],
+        "files": {"sample-skus.csv": "Agents/02_Cost_Pricing_Agent/examples/sample-skus.csv"},
+    },
+    {
+        "id": "02 list-platforms",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["--list-platforms"],
+    },
+    {
+        "id": "02 list-fba-tiers",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": ["--list-fba-tiers"],
+    },
+    {
+        "id": "02 无子命令",
+        "script": "Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py",
+        "args": [],
+    },
+    {
+        "id": "03 平台路径 JSON",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "Home & Kitchen > Kitchen & Dining > Small Appliances > Blenders",
+                 "--attr", "lithium_battery,food_contact,mains_power",
+                 "--marketplace", "amazon_us", "--json"],
+    },
+    {
+        "id": "03 平台路径 文本",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "Home & Kitchen > Kitchen & Dining > Small Appliances > Blenders",
+                 "--attr", "lithium_battery,food_contact,mains_power",
+                 "--marketplace", "amazon_us"],
+    },
+    {
+        "id": "03 全齐 PASS",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "small_appliances",
+                 "--attr", "lithium_battery,food_contact,mains_power",
+                 "--marketplace", "amazon_us",
+                 "--have", "UL 认证（UL 982）,CPSC 消费品安全自证,FCC Part 15 Subpart B SDoC,"
+                           "加州 Prop 65 警告标签,UN38.3 Test Summary,MSDS 安全数据表,"
+                           "UN3481 Class 9 电池标签,UL 2054 电池组测试,"
+                           "FDA 食品接触符合性声明,食品接触迁移测试报告,"
+                           "NEMA 5-15P 插头合规,DOE Level VI 能效报告", "--json"],
+    },
+    {
+        "id": "03 未知类目",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "Automotive", "--attr", "lithium_battery",
+                 "--marketplace", "amazon_us", "--json"],
+    },
+    {
+        "id": "03 CONDITIONAL lithium",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "small_appliances", "--attr", "lithium_battery",
+                 "--marketplace", "amazon_us", "--json"],
+    },
+    {
+        "id": "03 BLOCKED medical",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "office", "--attr", "medical_claim",
+                 "--marketplace", "amazon_us", "--json"],
+    },
+    {
+        "id": "03 商标冲突",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "office", "--attr", "food_contact",
+                 "--marketplace", "amazon_us", "--trademark", "conflict",
+                 "--have", "CPSC 消费品安全自证,加州 Prop 65 警告标签,"
+                           "FDA 食品接触符合性声明,食品接触迁移测试报告", "--json"],
+    },
+    {
+        "id": "03 TikTok PASS",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "office", "--attr", "food_contact",
+                 "--marketplace", "tiktok_us",
+                 "--have", "CPSC 消费品安全自证,加州 Prop 65 警告标签,"
+                           "FDA 食品接触符合性声明,食品接触迁移测试报告", "--json"],
+    },
+    {
+        "id": "03 list-categories",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--list-categories"],
+    },
+    {
+        "id": "03 缺 attr",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "small_appliances", "--marketplace", "amazon_us", "--json"],
+    },
+    {
+        "id": "03 非法 marketplace",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "small_appliances", "--attr", "lithium_battery",
+                 "--marketplace", "bogus", "--json"],
+    },
+    {
+        "id": "03 非法 attr",
+        "script": "Agents/03_Compliance_Agent/scripts/compliance_gate.py",
+        "args": ["--category", "small_appliances", "--attr", "bogus_attr",
+                 "--marketplace", "amazon_us", "--json"],
+    },
 ]
 
 
@@ -1065,7 +1247,7 @@ def main():
     parser = argparse.ArgumentParser(description="新旧实现黑盒对拍")
     parser.add_argument("--old-repo", required=True, help="旧仓库根目录")
     parser.add_argument("--new-repo", default=NEW_REPO, help="新仓库根目录（默认按本文件位置推断）")
-    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 04 / 05 / 06 / 07 / 08）")
+    parser.add_argument("--agent", help="只跑指定前缀的用例（01 / 02 / 03 / 04 / 05 / 06 / 07 / 08）")
     parser.add_argument("--keep", action="store_true", help="保留下拍临时目录")
     args = parser.parse_args()
 

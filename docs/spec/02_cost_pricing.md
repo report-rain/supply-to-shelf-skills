@@ -256,7 +256,7 @@ python Agents/02_Cost_Pricing_Agent/scripts/landed_cost.py --list-fba-tiers
 ```
 {"status":"INPUT_MISSING"|"ERROR", "missing":[str], "message":str}
 ```
-`status` 默认 `INPUT_MISSING`；当前代码未主动传 `ERROR`，故实际只见 `INPUT_MISSING`。`message` 会剥离开头的 `[INPUT_MISSING]`/`[ERROR]` 标签。
+`status` 默认 `INPUT_MISSING`；当前代码未主动传 `ERROR`，故实际只见 `INPUT_MISSING`。`message` 会剥离开头的 `[INPUT_MISSING]`/`[ERROR]` 标签。`calc` 缺参时 `message` 里的参数名按旧实现用 `", "`（逗号+空格）拼接，不使用中文顿号。
 
 矩阵失败 JSON（有失败行时）：
 ```

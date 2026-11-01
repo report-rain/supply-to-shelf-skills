@@ -815,7 +815,7 @@ def handle_calc(args, ctx):
         fail(
             "calc 缺少参数：{}。最小输入：--factory-rmb --fx --freight-per-unit --price，"
             "以及 --duty-pct/--hts 和 --fba-fee/--weight-g，以及 --category-key/--category".format(
-                "、".join(missing)
+                ", ".join(missing)
             ),
             code=2,
             missing=missing,

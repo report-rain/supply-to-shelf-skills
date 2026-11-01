@@ -34,5 +34,16 @@
 - 状态：完成（`d84957f`；推送受网络阻断，待恢复后重试）。
 
 ## 批次 5：整合与交付
-- 范围：全量对拍、端到端复算、文档缺口回填、README/CHANGELOG/LICENSE、CI。
-- 状态：待开始。
+- 范围：八模块全量对拍、端到端复算、`99_gap_and_decisions.md` 回填、README/SKILL/CHANGELOG/LICENSE、CI。
+- 对拍补齐：新增 02（13 条）与 03（12 条）用例，覆盖 calc/matrix/list/错误分支与 03 的 PASS/CONDITIONAL/BLOCKED/未知类目。
+- 对拍修正：
+  - 02 `calc` 缺参 `message` 的参数分隔符改回旧侧 `", "`。
+  - harness 将 `generated_at` 归一为 `<TIME>`，消除 03 跨秒抖动（`03 BLOCKED medical` 曾偶发 REGRESSION）。
+  - 02 六条用例登记 `#8`（`customs_fee_placeholder` + `[WARN]` note）。
+- 全量对拍：**SAME 121 / INTENDED_DIFF 24 / REGRESSION 0**。
+  - 01 `6/6/0`、02 `7/6/0`、03 `12/0/0`、04 `16/3/0`、05 `15/7/0`、06 `22/0/0`、07 `17/1/0`、08 `26/1/0`。
+- 端到端复算（02 主基准）：到岸 7.99、净利 7.67、净利率 25.58、盈亏价 19.33、目标价 29.62、占款 3995.0，与旧侧逐位一致。
+- 文档：`99` 的 D1–D16 全部给出决定，附列 14 项回填（含 02 列表 JSON、04 `100 %`、03 BOM 实测）。
+- 交付物：`README.md`、`SKILL.md`（Trae skill 入口）、`CHANGELOG.md`、`LICENSE`（MIT）、`.github/workflows/ci.yml`（3 平台 × 3.10/3.12）。
+- 测试：157 条通过。
+- 状态：完成（提交信息见下一条）。
