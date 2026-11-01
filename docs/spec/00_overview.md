@@ -37,17 +37,19 @@
 
 | 脚本 | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| 01 market_metrics | 成功 | 业务异常（如同价且总销量 0） | 输入错误 | — |
-| 01 normalize_export | 成功 | **所有输入错误（`sys.exit("字符串")`）** | — | — |
-| 01 opportunity_score | 成功 | 业务警示 | 输入错误 | — |
-| 02 landed_cost | 成功 | 非法日期 + 显式 season 的旧分支 | 输入错误（含 matrix 部分行失败） | 配置缺 `fba.tiers` |
+| 01 market_metrics | 成功 | — | 输入错误（`fail` 固定 2） | — |
+| 01 normalize_export | 成功 | — | 输入错误（`fail` 固定 2） | — |
+| 01 opportunity_score | 成功 | — | 输入 / 参数校验错误（`fail` 固定 2） | — |
+| 02 landed_cost | 成功 | 非法日期 + 显式 season 的未捕获 `ValueError` | 输入错误（含 matrix 部分行失败） | 配置缺 `fba.tiers` |
 | 03 compliance_gate | PASS | CONDITIONAL | BLOCKED | 输入/参数/配置错误 |
 | 04 claim_scan | 无 HIGH | 有 HIGH | 输入/参数错误 | — |
 | 04 listing_lint | 无 FAIL | 有 FAIL | 输入错误 | — |
-| 05 asset_check | 通过/仅 WARN | 有 FAIL（含缺图） | 参数/spec 错误 | — |
+| 05 asset_check | 通过/仅 WARN | 有 FAIL（含缺图） | 参数/spec 错误或输入文件缺失 | — |
 | 06 ads_metrics | 成功（含业务告警） | — | 输入错误 | — |
-| 07 review_ops | 成功（含业务告警） | — | 输入错误 | — |
+| 07 review_ops | 成功（含业务告警） | `CRITICAL` 且 `--fail-on-critical` | 输入错误 | — |
 | 08 inventory_plan | 成功 | — | 输入/参数错误 | — |
+
+> 以实际行为为准（本表按 2026-11-01 代码核实）。
 
 ### 2.3 数值与文本约定
 - 金额：USD，输出保留 2 位小数；中间量先算后 `round(x, 2)`，不使用银行家舍入（Python `round` 行为，遇 .5 依赖二进制表示）。
