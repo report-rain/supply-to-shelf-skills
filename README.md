@@ -113,4 +113,4 @@ python "<仓库路径>/Agents/04_Listing_Agent/scripts/listing_lint.py" --file "
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。clean-room 重写，旧实现仅用于对拍。
+MIT，见 [LICENSE](./LICENSE)。

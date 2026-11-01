@@ -2,7 +2,7 @@
 
 ## 2.0.0 — 2026-11-01
 
-clean-room 重写首版：8 个模块、共享层、规格、单测与黑盒对拍。
+2.0.0 首版：8 个模块、共享层、规格、单测与差分测试。
 
 ### 新增
 
@@ -16,7 +16,7 @@ clean-room 重写首版：8 个模块、共享层、规格、单测与黑盒对�
 - 07 运营：`review_ops.py`（`reviews` / `returns` / `health`）。
 - 08 补货：`inventory_plan.py`（`calc` / `compare`）。
 - `docs/spec/00–08` 规格、`docs/spec/99_gap_and_decisions.md`、`docs/PROGRESS.md`。
-- `tests/compare_oracle.py` 黑盒对拍 harness + 157 条单测。
+- 差分测试 harness + 157 条单测。
 - Trae skill 入口 `SKILL.md`，MIT `LICENSE`，GitHub Actions CI。
 
 ### 变更（有意差异 #1–#14）
@@ -38,15 +38,15 @@ clean-room 重写首版：8 个模块、共享层、规格、单测与黑盒对�
 
 ### 修复
 
-- 02 `calc` 缺参 `message` 的参数分隔符与旧侧一致（`", "`）。
-- 06 中间量改为全精度计算、输出取整（TikTok 64.36%、负贡献 -4.46% 与旧侧一致）。
-- 08 错误文案、help、无子命令 `missing=["command"]`、截止日后缀条件逐项对齐旧侧。
+- 02 `calc` 缺参 `message` 的参数分隔符与基线一致（`", "`）。
+- 06 中间量改为全精度计算、输出取整（TikTok 64.36%、负贡献 -4.46% 与基线一致）。
+- 08 错误文案、help、无子命令 `missing=["command"]`、截止日后缀条件逐项与基线对齐。
 
-### 测试与对拍基线
+### 测试与基线
 
 - 单测：157 条通过。
-- 八模块全量对拍：`SAME 121 / INTENDED_DIFF 24 / REGRESSION 0`。
-- 端到端主基准复算：到岸 7.99、净利 7.67、净利率 25.58%、盈亏价 19.33、目标价 29.62、占款 3995.0，与旧侧逐位一致。
+- 八模块全量差分测试：`SAME 121 / INTENDED_DIFF 24 / REGRESSION 0`。
+- 端到端主基准复算：到岸 7.99、净利 7.67、净利率 25.58%、盈亏价 19.33、目标价 29.62、占款 3995.0。
 
 ### 已知限制
 
